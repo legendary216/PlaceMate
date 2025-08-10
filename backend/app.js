@@ -3,6 +3,8 @@ import connectDB from './config/db.js';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import authRoutes from './Routes/authRoutes.js';
+import authMentorRoutes from './Routes/authMentorRoutes.js'
+
 
 dotenv.config();
 
@@ -12,7 +14,8 @@ app.use(cookieParser())
 
 // Connect to MongoDB Atlas
 connectDB();
-app.use('/api/auth',authRoutes)
+app.use('/api/auth/users',authRoutes)
+app.use('/api/auth/mentors',authMentorRoutes)
 
 app.get('/', (req, res) => {
   res.send('MongoDB connection check successful!');
