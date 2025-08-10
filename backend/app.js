@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 import authRoutes from './Routes/authRoutes.js';
 import authMentorRoutes from './Routes/authMentorRoutes.js'
-
+import authAdminRoutes from './Routes/authAdminRoutes.js'
 
 dotenv.config();
 
@@ -16,6 +16,7 @@ app.use(cookieParser())
 connectDB();
 app.use('/api/auth/users',authRoutes)
 app.use('/api/auth/mentors',authMentorRoutes)
+app.use('/api/auth/admin',authAdminRoutes)
 
 app.get('/', (req, res) => {
   res.send('MongoDB connection check successful!');
