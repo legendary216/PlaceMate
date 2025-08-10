@@ -1,4 +1,5 @@
 import Admin from '../models/Admin.js';
+import Mentor from '../models/Mentors.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 
@@ -69,6 +70,27 @@ export const logoutAdmin = async (req, res) => {
       .status(200)
       .json({ message: 'Logged out successfully' });
   } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+
+export const approveMentor = async (req, res) => {
+  try {
+    const { mentorId } = req.params;
+
+    const mentor = await Mentor.findById(mentorId);
+    if (!mentor) {
+      return res.status(404).json({ message: 'Mentor not found' });
+    }
+
+    mentor.approved = true;
+    await mentor.save();
+
+    res.status(200).json({ message: 'Mentor approved successfully', mentor });
+  } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Server error' });
   }
 };
