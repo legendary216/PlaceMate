@@ -8,16 +8,16 @@ import authAdminRoutes from './Routes/authAdminRoutes.js'
 import cors from "cors";
 
 
-dotenv.config();
+dotenv.config(); 
 
 
 
 const app = express();
 app.use(cors({
-  origin: "*",        
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  credentials: true
+  origin: ["http://localhost:8081", "http://192.168.0.147:8081"],
+  credentials: true,
 }));
+
 
 app.use(express.json());
 app.use(cookieParser())
