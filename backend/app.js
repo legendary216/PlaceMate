@@ -5,10 +5,20 @@ import cookieParser from 'cookie-parser';
 import authRoutes from './Routes/authRoutes.js';
 import authMentorRoutes from './Routes/authMentorRoutes.js'
 import authAdminRoutes from './Routes/authAdminRoutes.js'
+import cors from "cors";
+
 
 dotenv.config();
 
+
+
 const app = express();
+app.use(cors({
+  origin: "*",        
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
+
 app.use(express.json());
 app.use(cookieParser())
 
