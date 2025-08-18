@@ -2,19 +2,13 @@ import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity,Platform } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import { showMessage } from "react-native-flash-message";
 
 
 export default function Home() {
   const router = useRouter();
 
-    const showMessage = (title, message) => {
-    if (Platform.OS === "web") {
-      window.alert(`${title}\n${message}`);
-    } else {
-      Alert.alert(title, message);
-    }
-  };
+    
 
 
   const handleLogout = async () => {
@@ -22,7 +16,7 @@ export default function Home() {
      
       const res = await fetch("http://192.168.0.147:5000/api/auth/users/logout", {
   method: "POST",
-  credentials: "include",   // include cookie
+  credentials: "include",   
   headers: {
     "Content-Type": "application/json",
   },
@@ -33,14 +27,21 @@ export default function Home() {
        
         await AsyncStorage.removeItem("token");
 
-        showMessage("Success", "You have been logged out");
-        router.replace("/"); // Go back to Login
+        showMessage({
+          message: "Logout Successful 🎉",
+          description: `user logged out successfully!`,
+          type: "success",
+          icon: "success",
+        });
+
+      
+        router.replace("/"); 
       } else {
-        showMessage("Error", "Logout failed");
+        showMessage("Error", "Logout failed","danger" );
       }
     } catch (err) {
       console.error(err);
-      showMessage("Error", "Could not connect to server");
+      showMessage("Error", "Could not connect to server" ,"danger","danger");
     }
   };
 

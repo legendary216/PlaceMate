@@ -1,29 +1,21 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert,Platform } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { showMessage } from "react-native-flash-message";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
   const [emailError, setEmailError] = useState("");
   const [passwordError, setPasswordError] = useState("");
-
   const router = useRouter();
 
-    const showMessage = (title, message) => {
-    if (Platform.OS === "web") {
-      window.alert(`${title}\n${message}`);
-    } else {
-      Alert.alert(title, message);
-    }
-  };
-
+  // ✅ validation
   const validateInputs = () => {
     let valid = true;
-
     const emailRegex = /\S+@\S+\.\S+/;
+
     if (!emailRegex.test(email)) {
       setEmailError("Enter a valid email address");
       valid = false;
@@ -41,39 +33,57 @@ export default function Login() {
     return valid;
   };
 
+  // ✅ login function
   const handleLogin = async () => {
-
     try {
-     if ( !email.trim() || !password.trim()) {
-        showMessage("Error", "All fields are required");
+      if (!email.trim() || !password.trim()) {
+        showMessage({
+          message: "Error",
+          description: "All fields are required",
+          type: "danger",
+        });
         return;
       }
 
-    if (!validateInputs())
-       return;
+      if (!validateInputs()) return;
 
       const res = await fetch("http://192.168.0.147:5000/api/auth/users/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include", // ✅ keeps cookies
         body: JSON.stringify({ email, password }),
       });
 
       if (res.ok) {
         const data = await res.json();
-        
+
+        // store token & user
         await AsyncStorage.setItem("token", data.token);
         await AsyncStorage.setItem("user", JSON.stringify(data.user));
 
-        showMessage("Success", "Login successful!");
+        showMessage({
+          message: "Login Successful 🎉",
+          description: `Welcome back, ${data.user.name || "User"}!`,
+          type: "success",
+          icon: "success",
+        });
+
+        // ✅ go to home
         router.replace("/home");
       } else {
         const errorData = await res.json();
-        showMessage("Error", errorData.message || "Login failed");
+        showMessage({
+          message: "Login Failed",
+          description: errorData.message || "Invalid credentials",
+          type: "danger",
+        });
       }
     } catch (err) {
-      showMessage("Error", "Could not connect to server");
+      showMessage({
+        message: "Error",
+        description: "Could not connect to server",
+        type: "danger",
+      });
       console.error(err);
     }
   };
@@ -90,7 +100,7 @@ export default function Login() {
         onChangeText={setEmail}
       />
 
-{passwordError ? <Text style={styles.error}>{passwordError}</Text> : null}
+      {passwordError ? <Text style={styles.error}>{passwordError}</Text> : null}
       <TextInput
         style={[styles.input, passwordError ? { borderColor: "red" } : {}]}
         placeholder="Password"

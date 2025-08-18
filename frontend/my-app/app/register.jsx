@@ -5,8 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
-  Platform,
+  Modal,
 } from "react-native";
 import { useRouter } from "expo-router";
 
@@ -15,27 +14,21 @@ export default function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [emailerror, setemailError] = useState("");
   const [errorP, setErrorP] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
   const router = useRouter();
 
   const emailRegex = /\S+@\S+\.\S+/;
-
-  const showMessage = (title, message) => {
-    if (Platform.OS === "web") {
-      window.alert(`${title}\n${message}`);
-    } else {
-      Alert.alert(title, message);
-    }
-  };
 
   const validinputs = () => {
     let valid = true;
 
     if (!emailRegex.test(email)) {
-      setError("Enter a valid email address");
+      setemailError("Enter a valid email address");
       valid = false;
     } else {
-      setError("");
+      setemailError("");
     }
 
     if (password.length < 6) {
@@ -51,7 +44,7 @@ export default function Register() {
   const handleRegister = async () => {
     try {
       if (!fullName.trim() || !email.trim() || !password.trim()) {
-        showMessage("Error", "All fields are required");
+        setError("All fields are required");
         return;
       }
 
@@ -69,14 +62,13 @@ export default function Register() {
       );
 
       if (res.ok) {
-        showMessage("Success", "Registration successful!");
-        router.replace("/"); // Go back to Login
+        setShowSuccess(true); // show modal
       } else {
         const errorData = await res.json();
-        showMessage("Error", errorData.message || "Registration failed");
+        setError(errorData.message || "Registration failed");
       }
     } catch (err) {
-      showMessage("Error", "Could not connect to server");
+      setError("Could not connect to server");
       console.error(err);
     }
   };
@@ -85,16 +77,17 @@ export default function Register() {
     <View style={styles.container}>
       <Text style={styles.title}>Register</Text>
 
+      {error ? <Text style={{ color: "red" }}>{error}</Text> : null}
+
       <TextInput
-        style={styles.input}
+        style={[styles.input, error ? { borderColor: "red" } : {}]}
         placeholder="Full Name"
         value={fullName}
         onChangeText={setFullName}
       />
 
-      {error ? <Text style={{ color: "red" }}>{error}</Text> : null}
       <TextInput
-        style={[styles.input, error ? { borderColor: "red" } : {}]}
+        style={[styles.input, emailerror || error ? { borderColor: "red" } : {}]}
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
@@ -102,7 +95,7 @@ export default function Register() {
 
       {errorP ? <Text style={{ color: "red" }}>{errorP}</Text> : null}
       <TextInput
-        style={[styles.input, errorP ? { borderColor: "red" } : {}]}
+        style={[styles.input, errorP || error ? { borderColor: "red" } : {}]}
         placeholder="Password"
         secureTextEntry
         value={password}
@@ -116,6 +109,29 @@ export default function Register() {
       <TouchableOpacity onPress={() => router.replace("/")}>
         <Text style={styles.link}>Already have an account? Login</Text>
       </TouchableOpacity>
+
+      {/* ✅ Success Modal */}
+      <Modal transparent visible={showSuccess} animationType="fade">
+        <View style={styles.overlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.icon}>✅</Text>
+            <Text style={styles.modalTitle}>Registration successful!</Text>
+            <Text style={styles.modalSubtitle}>
+              Your account has been created successfully.
+            </Text>
+
+            <TouchableOpacity
+              style={styles.modalButton}
+              onPress={() => {
+                setShowSuccess(false);
+                router.replace("/"); // go to login
+              }}
+            >
+              <Text style={styles.modalButtonText}>Ok</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -148,4 +164,39 @@ const styles = StyleSheet.create({
   },
   buttonText: { color: "white", textAlign: "center", fontWeight: "bold" },
   link: { textAlign: "center", color: "#007AFF", marginTop: 10 },
+
+  // Modal styles
+  overlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.5)",
+  },
+  modalBox: {
+    backgroundColor: "#fff",
+    borderRadius: 10,
+    padding: 25,
+    width: 300,
+    alignItems: "center",
+  },
+  icon: { fontSize: 50, marginBottom: 10 },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: "#555",
+    textAlign: "center",
+    marginBottom: 20,
+  },
+  modalButton: {
+    backgroundColor: "#28a745",
+    paddingVertical: 10,
+    paddingHorizontal: 25,
+    borderRadius: 8,
+  },
+  modalButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
 });
