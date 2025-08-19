@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 
@@ -13,29 +15,29 @@ export default function Register() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [emailerror, setemailError] = useState("");
-  const [errorP, setErrorP] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [generalError, setGeneralError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
   const router = useRouter();
 
   const emailRegex = /\S+@\S+\.\S+/;
 
-  const validinputs = () => {
+  const validateInputs = () => {
     let valid = true;
 
     if (!emailRegex.test(email)) {
-      setemailError("Enter a valid email address");
+      setEmailError("Enter a valid email address");
       valid = false;
     } else {
-      setemailError("");
+      setEmailError("");
     }
 
     if (password.length < 6) {
-      setErrorP("Password must be at least 6 characters");
+      setPasswordError("Password must be at least 6 characters");
       valid = false;
     } else {
-      setErrorP("");
+      setPasswordError("");
     }
 
     return valid;
@@ -44,11 +46,11 @@ export default function Register() {
   const handleRegister = async () => {
     try {
       if (!fullName.trim() || !email.trim() || !password.trim()) {
-        setError("All fields are required");
+        setGeneralError("All fields are required");
         return;
       }
 
-      if (!validinputs()) return;
+      if (!validateInputs()) return;
 
       const res = await fetch(
         "http://192.168.0.147:5000/api/auth/users/register",
@@ -62,45 +64,54 @@ export default function Register() {
       );
 
       if (res.ok) {
-        setShowSuccess(true); // show modal
+        setShowSuccess(true);
       } else {
         const errorData = await res.json();
-        setError(errorData.message || "Registration failed");
+        setGeneralError(errorData.message || "Registration failed");
       }
     } catch (err) {
-      setError("Could not connect to server");
+      setGeneralError("Could not connect to server");
       console.error(err);
     }
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Register</Text>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
+      <Text style={styles.title}>Create Account</Text>
 
-      {error ? <Text style={{ color: "red" }}>{error}</Text> : null}
+      {generalError ? <Text style={styles.error}>{generalError}</Text> : null}
 
       <TextInput
-        style={[styles.input, error ? { borderColor: "red" } : {}]}
+        style={[styles.input, fullName === "" && generalError && { borderColor: "#FF6B6B" }]}
         placeholder="Full Name"
         value={fullName}
         onChangeText={setFullName}
+        placeholderTextColor="#888"
       />
 
       <TextInput
-        style={[styles.input, emailerror || error ? { borderColor: "red" } : {}]}
+        style={[styles.input, emailError && { borderColor: "#FF6B6B" }]}
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
+        placeholderTextColor="#888"
+        keyboardType="email-address"
+        autoCapitalize="none"
       />
+      {emailError ? <Text style={styles.error}>{emailError}</Text> : null}
 
-      {errorP ? <Text style={{ color: "red" }}>{errorP}</Text> : null}
       <TextInput
-        style={[styles.input, errorP || error ? { borderColor: "red" } : {}]}
+        style={[styles.input, passwordError && { borderColor: "#FF6B6B" }]}
         placeholder="Password"
-        secureTextEntry
         value={password}
         onChangeText={setPassword}
+        placeholderTextColor="#888"
+        secureTextEntry
       />
+      {passwordError ? <Text style={styles.error}>{passwordError}</Text> : null}
 
       <TouchableOpacity style={styles.button} onPress={handleRegister}>
         <Text style={styles.buttonText}>Register</Text>
@@ -110,7 +121,7 @@ export default function Register() {
         <Text style={styles.link}>Already have an account? Login</Text>
       </TouchableOpacity>
 
-      {/* ✅ Success Modal */}
+  
       <Modal transparent visible={showSuccess} animationType="fade">
         <View style={styles.overlay}>
           <View style={styles.modalBox}>
@@ -124,7 +135,7 @@ export default function Register() {
               style={styles.modalButton}
               onPress={() => {
                 setShowSuccess(false);
-                router.replace("/"); // go to login
+                router.replace("/"); 
               }}
             >
               <Text style={styles.modalButtonText}>Ok</Text>
@@ -132,7 +143,7 @@ export default function Register() {
           </View>
         </View>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -140,31 +151,60 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: "center",
-    padding: 20,
-    backgroundColor: "#fff",
+    padding: 30,
+    backgroundColor: "#f9fafe",
   },
   title: {
-    fontSize: 24,
-    textAlign: "center",
-    marginBottom: 20,
+    fontSize: 28,
     fontWeight: "bold",
+    color: "#222",
+    textAlign: "center",
+    marginBottom: 15,
   },
   input: {
+    backgroundColor: "#fff",
     borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 10,
-    marginBottom: 15,
-    borderRadius: 5,
+    borderColor: "#ddd",
+    padding: 14,
+    marginBottom: 12,
+    borderRadius: 12,
+    fontSize: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
   button: {
-    backgroundColor: "#007AFF",
-    padding: 15,
-    borderRadius: 5,
-    marginBottom: 10,
+    backgroundColor: "#4f46e5",
+    paddingVertical: 16,
+    borderRadius: 12,
+    marginTop: 10,
+    shadowColor: "#4f46e5",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
   },
-  buttonText: { color: "white", textAlign: "center", fontWeight: "bold" },
-  link: { textAlign: "center", color: "#007AFF", marginTop: 10 },
-
+  buttonText: {
+    color: "#fff",
+    textAlign: "center",
+    fontWeight: "bold",
+    fontSize: 18,
+  },
+  link: {
+    textAlign: "center",
+    color: "#4f46e5",
+    marginTop: 20,
+    fontWeight: "500",
+    fontSize: 15,
+  },
+  error: {
+    color: "#FF6B6B",
+    fontSize: 13,
+    marginBottom: 5,
+    marginLeft: 5,
+  },
   // Modal styles
   overlay: {
     flex: 1,
@@ -174,7 +214,7 @@ const styles = StyleSheet.create({
   },
   modalBox: {
     backgroundColor: "#fff",
-    borderRadius: 10,
+    borderRadius: 12,
     padding: 25,
     width: 300,
     alignItems: "center",
@@ -193,10 +233,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   modalButton: {
-    backgroundColor: "#28a745",
-    paddingVertical: 10,
+    backgroundColor: "#4f46e5",
+    paddingVertical: 12,
     paddingHorizontal: 25,
-    borderRadius: 8,
+    borderRadius: 12,
   },
-  modalButtonText: { color: "white", fontSize: 16, fontWeight: "bold" },
+  modalButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
 });
