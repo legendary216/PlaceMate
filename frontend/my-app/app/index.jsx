@@ -1,190 +1,266 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
-import { useRouter } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { showMessage } from "react-native-flash-message";
+
+// This component has been converted from React Native to a standard web-based React component.
+// All mobile-specific imports and components have been replaced with their web equivalents.
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const router = useRouter();
+  const [role, setRole] = useState("user");
+
+  // State for error messages and success modal
+  const [error, setError] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const validateInputs = () => {
-    let valid = true;
     const emailRegex = /\S+@\S+\.\S+/;
-
     if (!emailRegex.test(email)) {
-      setEmailError("Enter a valid email address");
-      valid = false;
-    } else {
-      setEmailError("");
+      setError("Please enter a valid email address");
+      return false;
     }
-
     if (password.length < 6) {
-      setPasswordError("Password must be at least 6 characters");
-      valid = false;
-    } else {
-      setPasswordError("");
+      setError("Password must be at least 6 characters");
+      return false;
     }
-
-    return valid;
+    setError("");
+    return true;
   };
 
-  const handleLogin = async () => {
+  const handleLogin = async (e) => {
+    e.preventDefault(); // Prevent form from causing a page refresh
+
     try {
       if (!email.trim() || !password.trim()) {
-        showMessage({
-          message: "Error",
-          description: "All fields are required",
-          type: "danger",
-        });
+        setError("All fields are required");
         return;
       }
 
       if (!validateInputs()) return;
 
-      const res = await fetch("http://192.168.0.147:5000/api/auth/login/loginUser", {
+      const res = await fetch("http://192.168.0.147:5000/api/auth/login/handlelogin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, role }),
       });
+
+      const data = await res.json();
 
       if (res.ok) {
-        const data = await res.json();
-        await AsyncStorage.setItem("token", data.token);
-        await AsyncStorage.setItem("user", JSON.stringify(data.user));
+        // Use localStorage instead of AsyncStorage for web
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("user", JSON.stringify({ ...data.user, role: role }));
+        
+        setShowSuccess(true); // Show success modal instead of flash message
 
-        showMessage({
-          message: "Login Successful 🎉",
-          description: `Welcome back, ${data.user.name || "User"}!`,
-          type: "success",
-          icon: "success",
-        });
-
-        router.replace("/home");
       } else {
-        const errorData = await res.json();
-        showMessage({
-          message: "Login Failed",
-          description: errorData.message || "Invalid credentials",
-          type: "danger",
-        });
+        setError(data.message || "Invalid credentials");
       }
     } catch (err) {
-      showMessage({
-        message: "Error",
-        description: "Could not connect to server",
-        type: "danger",
-      });
+      setError("Could not connect to the server. Please check your connection.");
       console.error(err);
     }
   };
+  
+  const handleSuccessRedirect = () => {
+      setShowSuccess(false);
+      // Navigate to different dashboards based on the role
+      if (role === 'admin') {
+          window.location.href = "/admin/dashboard";
+      } else if (role === 'mentor') {
+          window.location.href = "/home";
+      } else {
+          window.location.href = "/home";
+      }
+  };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <Text style={styles.title}>Welcome Back!</Text>
-      <Text style={styles.subtitle}>Log in to continue to PlaceMate</Text>
+    <>
+      <style>{`
+        body {
+          margin: 0;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Oxygen',
+            'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+            sans-serif;
+          background-color: #f9fafe;
+        }
+        .container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 100vh;
+          padding: 2.5rem;
+          box-sizing: border-box;
+        }
+        .login-wrapper {
+          width: 100%;
+          max-width: 28rem; /* 448px */
+        }
+        .title {
+          font-size: 2rem; /* 32px */
+          font-weight: 700;
+          color: #222;
+          text-align: center;
+          margin-bottom: 0.5rem; /* 8px */
+        }
+        .subtitle {
+          font-size: 1rem; /* 16px */
+          color: #555;
+          text-align: center;
+          margin-bottom: 1.25rem; /* 20px */
+        }
+        .role-selector-container {
+          display: flex;
+          justify-content: center;
+          margin-bottom: 1.25rem; /* 20px */
+          background-color: #eef2ff;
+          border-radius: 0.75rem; /* 12px */
+          padding: 0.25rem; /* 4px */
+        }
+        .role-button {
+          flex: 1;
+          padding: 0.625rem 0; /* 10px */
+          border-radius: 0.625rem; /* 10px */
+          text-align: center;
+          border: none;
+          background-color: transparent;
+          cursor: pointer;
+        }
+        .role-button-selected {
+          background-color: #4f46e5;
+          box-shadow: 0 2px 4px 0 rgba(79, 70, 229, 0.3);
+        }
+        .role-button-text {
+          color: #4f46e5;
+          font-weight: 600;
+          font-size: 0.9375rem; /* 15px */
+        }
+        .role-button-text-selected {
+          color: #fff;
+        }
+        .input-field {
+          width: 100%;
+          box-sizing: border-box;
+          background-color: #fff;
+          border: 1px solid #ddd;
+          padding: 0.9375rem; /* 15px */
+          margin-bottom: 0.75rem; /* 12px */
+          border-radius: 0.75rem; /* 12px */
+          font-size: 1rem; /* 16px */
+          box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        }
+        .input-field:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.5);
+        }
+        .button-primary {
+          width: 100%;
+          background-color: #4f46e5;
+          color: #fff;
+          padding: 1rem 0; /* 16px */
+          border-radius: 0.75rem; /* 12px */
+          margin-top: 0.625rem; /* 10px */
+          border: none;
+          cursor: pointer;
+          text-align: center;
+          font-weight: 700;
+          font-size: 1.125rem; /* 18px */
+          box-shadow: 0 4px 6px 0 rgba(79, 70, 229, 0.3);
+        }
+        .button-primary:hover {
+            background-color: #4338ca;
+        }
+        .link {
+          display: block;
+          text-align: center;
+          color: #4f46e5;
+          margin-top: 1.25rem; /* 20px */
+          font-weight: 500;
+          font-size: 0.9375rem; /* 15px */
+          text-decoration: none;
+        }
+        .link:hover {
+            text-decoration: underline;
+        }
+        .error {
+          color: #ef4444; /* red-500 */
+          font-size: 0.875rem; /* 14px */
+          margin-bottom: 0.75rem; /* 12px */
+          text-align: center;
+        }
 
-      {emailError ? <Text style={styles.error}>{emailError}</Text> : null}
-      <TextInput
-        style={[styles.input, emailError && { borderColor: "#FF6B6B" }]}
-        placeholder="Email"
-        placeholderTextColor="#888"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
+        /* Modal Styles */
+        .modal-overlay {
+          position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.5);
+          display: flex; justify-content: center; align-items: center; padding: 1rem;
+        }
+        .modal-box {
+          background-color: #fff; border-radius: 0.75rem; padding: 2rem;
+          width: 100%; max-width: 24rem; text-align: center;
+        }
+        .modal-icon { font-size: 4rem; margin-bottom: 1rem; line-height: 1; }
+        .modal-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .modal-subtitle { color: #4b5563; margin-bottom: 1.5rem; }
+      `}</style>
+      <div className="container">
+        <form className="login-wrapper" onSubmit={handleLogin}>
+          <h1 className="title">Welcome Back!</h1>
+          <p className="subtitle">Log in to continue to PlaceMate</p>
 
-      {passwordError ? <Text style={styles.error}>{passwordError}</Text> : null}
-      <TextInput
-        style={[styles.input, passwordError && { borderColor: "#FF6B6B" }]}
-        placeholder="Password"
-        placeholderTextColor="#888"
-        secureTextEntry
-        value={password}
-        onChangeText={setPassword}
-      />
+          <div className="role-selector-container">
+            <button type="button" className={`role-button ${role === 'user' ? 'role-button-selected' : ''}`} onClick={() => setRole('user')}>
+              <span className={`role-button-text ${role === 'user' ? 'role-button-text-selected' : ''}`}>User</span>
+            </button>
+            <button type="button" className={`role-button ${role === 'mentor' ? 'role-button-selected' : ''}`} onClick={() => setRole('mentor')}>
+              <span className={`role-button-text ${role === 'mentor' ? 'role-button-text-selected' : ''}`}>Mentor</span>
+            </button>
+            <button type="button" className={`role-button ${role === 'admin' ? 'role-button-selected' : ''}`} onClick={() => setRole('admin')}>
+              <span className={`role-button-text ${role === 'admin' ? 'role-button-text-selected' : ''}`}>Admin</span>
+            </button>
+          </div>
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Log In</Text>
-      </TouchableOpacity>
+          {error && <p className="error">{error}</p>}
+          
+          <input
+            className="input-field"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            type="email"
+          />
+          <input
+            className="input-field"
+            placeholder="Password"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
 
-      <TouchableOpacity onPress={() => router.push("/register")}>
-        <Text style={styles.link}>Don’t have an account? Register</Text>
-      </TouchableOpacity>
-    </KeyboardAvoidingView>
+          <button type="submit" className="button-primary">
+            Log In
+          </button>
+
+          {role !== 'admin' && (
+            <a href={role === 'mentor' ? '/mentor' : '/register'} className="link">
+              Don’t have an account? Register
+            </a>
+          )}
+        </form>
+
+        {showSuccess && (
+          <div className="modal-overlay">
+            <div className="modal-box">
+              <p className="modal-icon">🎉</p>
+              <h2 className="modal-title">Login Successful!</h2>
+              <p className="modal-subtitle">Welcome back! Redirecting you now...</p>
+              <button onClick={handleSuccessRedirect} className="button-primary">
+                Ok
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 30,
-    backgroundColor: "#f9fafe",
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#222",
-    textAlign: "center",
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#555",
-    textAlign: "center",
-    marginBottom: 30,
-  },
-  input: {
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    padding: 15,
-    marginBottom: 12,
-    borderRadius: 12,
-    fontSize: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  button: {
-    backgroundColor: "#4f46e5",
-    paddingVertical: 16,
-    borderRadius: 12,
-    marginTop: 10,
-    shadowColor: "#4f46e5",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
-  },
-  buttonText: {
-    color: "#fff",
-    textAlign: "center",
-    fontWeight: "bold",
-    fontSize: 18,
-  },
-  link: {
-    textAlign: "center",
-    color: "#4f46e5",
-    marginTop: 20,
-    fontWeight: "500",
-    fontSize: 15,
-  },
-  error: {
-    color: "#FF6B6B",
-    fontSize: 13,
-    marginBottom: 5,
-    marginLeft: 5,
-  },
-});
