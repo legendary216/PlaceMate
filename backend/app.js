@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import LoginRoutes from './Routes/LoginRoutes.js';
 import RegisterRoutes from './Routes/RegisterRoutes.js'
 import authAdminRoutes from './Routes/authAdminRoutes.js'
+import questionRoutes from './Routes/QuestionRotues.js';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import cors from "cors";
@@ -31,7 +32,7 @@ connectDB();
 app.use('/api/auth/login',LoginRoutes)
 app.use('/api/auth/register',RegisterRoutes)
 app.use('/api/auth/admin',authAdminRoutes)
-
+app.use('/api/questions', questionRoutes);
 
 // Make the 'uploads' folder publicly accessible
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

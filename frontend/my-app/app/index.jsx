@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 
-// This component has been converted from React Native to a standard web-based React component.
-// All mobile-specific imports and components have been replaced with their web equivalents.
+// This is the complete, self-contained login component for your web application.
+// It handles authentication for all user roles (User, Mentor, Admin).
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [role, setRole] = useState("user");
 
-  // State for error messages and success modal
+  // State for error messages and the success modal
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -27,7 +27,7 @@ export default function Login() {
   };
 
   const handleLogin = async (e) => {
-    e.preventDefault(); // Prevent form from causing a page refresh
+    e.preventDefault(); // Prevent the form from causing a page refresh
 
     try {
       if (!email.trim() || !password.trim()) {
@@ -37,6 +37,7 @@ export default function Login() {
 
       if (!validateInputs()) return;
 
+      // Note: Ensure this endpoint matches your single, unified login route in the backend.
       const res = await fetch("http://192.168.0.147:5000/api/auth/login/handlelogin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -46,12 +47,14 @@ export default function Login() {
       const data = await res.json();
 
       if (res.ok) {
-        // Use localStorage instead of AsyncStorage for web
+        // Save the token to localStorage
         localStorage.setItem("token", data.token);
+        
+        // **Crucially, save the user object AND the selected role to localStorage**
+        // This is how other parts of your app will know who is logged in.
         localStorage.setItem("user", JSON.stringify({ ...data.user, role: role }));
         
-        setShowSuccess(true); // Show success modal instead of flash message
-
+        setShowSuccess(true); // Show the success modal
       } else {
         setError(data.message || "Invalid credentials");
       }
@@ -67,6 +70,7 @@ export default function Login() {
       if (role === 'admin') {
           window.location.href = "/admin/dashboard";
       } else if (role === 'mentor') {
+          // As per your request, mentor also goes to home. This can be changed to /mentor/dashboard if needed.
           window.location.href = "/home";
       } else {
           window.location.href = "/home";
@@ -93,33 +97,33 @@ export default function Login() {
         }
         .login-wrapper {
           width: 100%;
-          max-width: 28rem; /* 448px */
+          max-width: 28rem;
         }
         .title {
-          font-size: 2rem; /* 32px */
+          font-size: 2rem;
           font-weight: 700;
           color: #222;
           text-align: center;
-          margin-bottom: 0.5rem; /* 8px */
+          margin-bottom: 0.5rem;
         }
         .subtitle {
-          font-size: 1rem; /* 16px */
+          font-size: 1rem;
           color: #555;
           text-align: center;
-          margin-bottom: 1.25rem; /* 20px */
+          margin-bottom: 1.25rem;
         }
         .role-selector-container {
           display: flex;
           justify-content: center;
-          margin-bottom: 1.25rem; /* 20px */
+          margin-bottom: 1.25rem;
           background-color: #eef2ff;
-          border-radius: 0.75rem; /* 12px */
-          padding: 0.25rem; /* 4px */
+          border-radius: 0.75rem;
+          padding: 0.25rem;
         }
         .role-button {
           flex: 1;
-          padding: 0.625rem 0; /* 10px */
-          border-radius: 0.625rem; /* 10px */
+          padding: 0.625rem 0;
+          border-radius: 0.625rem;
           text-align: center;
           border: none;
           background-color: transparent;
@@ -132,7 +136,7 @@ export default function Login() {
         .role-button-text {
           color: #4f46e5;
           font-weight: 600;
-          font-size: 0.9375rem; /* 15px */
+          font-size: 0.9375rem;
         }
         .role-button-text-selected {
           color: #fff;
@@ -142,10 +146,10 @@ export default function Login() {
           box-sizing: border-box;
           background-color: #fff;
           border: 1px solid #ddd;
-          padding: 0.9375rem; /* 15px */
-          margin-bottom: 0.75rem; /* 12px */
-          border-radius: 0.75rem; /* 12px */
-          font-size: 1rem; /* 16px */
+          padding: 0.9375rem;
+          margin-bottom: 0.75rem;
+          border-radius: 0.75rem;
+          font-size: 1rem;
           box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
         }
         .input-field:focus {
@@ -157,15 +161,16 @@ export default function Login() {
           width: 100%;
           background-color: #4f46e5;
           color: #fff;
-          padding: 1rem 0; /* 16px */
-          border-radius: 0.75rem; /* 12px */
-          margin-top: 0.625rem; /* 10px */
+          padding: 1rem 0;
+          border-radius: 0.75rem;
+          margin-top: 0.625rem;
           border: none;
           cursor: pointer;
           text-align: center;
           font-weight: 700;
-          font-size: 1.125rem; /* 18px */
+          font-size: 1.125rem;
           box-shadow: 0 4px 6px 0 rgba(79, 70, 229, 0.3);
+          transition: background-color 0.2s;
         }
         .button-primary:hover {
             background-color: #4338ca;
@@ -174,25 +179,23 @@ export default function Login() {
           display: block;
           text-align: center;
           color: #4f46e5;
-          margin-top: 1.25rem; /* 20px */
+          margin-top: 1.25rem;
           font-weight: 500;
-          font-size: 0.9375rem; /* 15px */
+          font-size: 0.9375rem;
           text-decoration: none;
         }
         .link:hover {
             text-decoration: underline;
         }
         .error {
-          color: #ef4444; /* red-500 */
-          font-size: 0.875rem; /* 14px */
-          margin-bottom: 0.75rem; /* 12px */
+          color: #ef4444;
+          font-size: 0.875rem;
+          margin-bottom: 0.75rem;
           text-align: center;
         }
-
-        /* Modal Styles */
         .modal-overlay {
           position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.5);
-          display: flex; justify-content: center; align-items: center; padding: 1rem;
+          display: flex; justify-content: center; align-items: center; padding: 1rem; z-index: 100;
         }
         .modal-box {
           background-color: #fff; border-radius: 0.75rem; padding: 2rem;
