@@ -3,22 +3,27 @@ import mongoose from 'mongoose';
 const questionSchema = new mongoose.Schema({
   question: {
     type: String,
-    required: [true, 'Please provide the question text.'],
+    required: true,
     trim: true,
   },
   answer: {
     type: String,
-    required: [true, 'Please provide an answer.'],
+    required: true,
   },
   category: {
     type: String,
-    required: [true, 'Please specify a category.'],
-    enum: ['technical', 'hr', 'aptitude'], // Ensures the category is one of these three values
+    required: true,
+    enum: ['technical', 'hr', 'aptitude'],
   },
-}, {
-  timestamps: true, // Automatically adds createdAt and updatedAt fields
-});
+  difficulty: {
+    type: String,
+    required: true,
+    enum: ['Easy', 'Medium', 'Hard'],
+    default: 'Medium',
+  },
+}, { timestamps: true });
 
 const Question = mongoose.model('Question', questionSchema);
 
 export default Question;
+
