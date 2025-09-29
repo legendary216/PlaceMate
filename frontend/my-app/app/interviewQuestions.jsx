@@ -24,7 +24,12 @@ export default function InterviewPage() {
   // --- Step 1: Check user role and fetch initial questions on component load ---
   useEffect(() => {
     // FOR NOW: Default role is set to 'admin' to always show the 'Add' button
-    setUserRole('admin');
+   // setUserRole('admin');
+     const userDataString = localStorage.getItem('user');
+    if (userDataString) {
+      const userData = JSON.parse(userDataString);
+      setUserRole(userData.role);
+    }
 
     // Fetch questions for the initially active tab
     fetchQuestions(activeTab);

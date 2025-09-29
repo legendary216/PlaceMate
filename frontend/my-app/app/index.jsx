@@ -68,7 +68,7 @@ export default function Login() {
       setShowSuccess(false);
       // Navigate to different dashboards based on the role
       if (role === 'admin') {
-          window.location.href = "/admin/dashboard";
+          window.location.href = "/home";
       } else if (role === 'mentor') {
           // As per your request, mentor also goes to home. This can be changed to /mentor/dashboard if needed.
           window.location.href = "/home";
