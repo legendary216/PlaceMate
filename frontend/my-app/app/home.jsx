@@ -21,7 +21,7 @@ export default function Home() {
   }, []);
 
   const features = [
-    { id: 1, title: "Interview Qs", Icon: MessageSquare, nav: "/interview" },
+    { id: 1, title: "Interview Qs", Icon: MessageSquare, nav: "/interviewQuestions" },
     { id: 2, title: "Mentor Connect", Icon: Users, nav: "/mentorconnect" },
     { id: 3, title: "Company Analysis", Icon: Building, nav: "/company" },
     { id: 4, title: "AI Resume", Icon: FileText, nav: "/resume" },
