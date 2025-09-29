@@ -53,7 +53,7 @@ export default function Register() {
       if (!validateInputs()) return;
 
       const res = await fetch(
-        "http://192.168.0.147:5000/api/auth/users/register",
+        "http://192.168.0.147:5000/api/auth/register/registerUser",
         {
           method: "POST",
           headers: {

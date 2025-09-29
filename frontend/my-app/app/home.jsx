@@ -14,7 +14,7 @@ export default function Home() {
   const handleLogout = async () => {
     try {
      
-      const res = await fetch("http://192.168.0.147:5000/api/auth/users/logout", {
+      const res = await fetch("http://192.168.0.147:5000/api/auth/login/logoutUser", {
   method: "POST",
   credentials: "include",   
   headers: {

@@ -1,0 +1,394 @@
+import React, { useState, useRef } from "react";
+import { Camera, CloudUpload, Check, FileText, Loader2 } from 'lucide-react';
+import { useRouter } from "expo-router"; 
+// This is the fully integrated web component.
+
+export default function App() {
+  const router = useRouter();
+  const [step, setStep] = useState(1);
+  // Refs for file inputs
+  const profilePicRef = useRef(null);
+  const idProofRef = useRef(null);
+
+  // Form States
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [jobTitle, setJobTitle] = useState("");
+  const [company, setCompany] = useState("");
+  const [experience, setExperience] = useState("");
+  const [qualification, setQualification] = useState("");
+  const [expertise, setExpertise] = useState("");
+  const [availability, setAvailability] = useState("");
+  const [hours, setHours] = useState("");
+  const [profilePic, setProfilePic] = useState(null);
+  const [idProof, setIdProof] = useState(null);
+  const [agree, setAgree] = useState(false);
+
+  // Errors, success, and loading states
+  const [generalError, setGeneralError] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false); // New state for loading indicator
+
+  const emailRegex = /\S+@\S+\.\S+/;
+
+  const handleProfilePicChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setProfilePic(file);
+    }
+  };
+
+  const handleIdProofChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setIdProof(file);
+    }
+  };
+
+  const validateStep = () => {
+    // Reset error at the beginning of validation
+    setGeneralError("");
+    if (step === 1) {
+      if (!fullName.trim() || !email.trim() || !phone.trim() || !password.trim()) {
+        setGeneralError("All fields on this page are required");
+        return false;
+      }
+      if (!emailRegex.test(email)) {
+        setGeneralError("Please enter a valid email address");
+        return false;
+      }
+      if (password.length < 6) {
+        setGeneralError("Password must be at least 6 characters");
+        return false;
+      }
+    }
+    if (step === 4) {
+      if (!idProof) {
+          setGeneralError("Please upload your ID for verification.");
+          return false;
+      }
+      if (!agree) {
+          setGeneralError("You must agree to the Terms & Conditions.");
+          return false;
+      }
+    }
+    return true;
+  };
+
+  const nextStep = () => {
+    if (validateStep()) {
+      if (step < 4) setStep(step + 1);
+    }
+  };
+
+  const prevStep = () => {
+    if (step > 1) setStep(step - 1);
+  };
+
+  const handleRegister = async () => {
+    if (!validateStep()) return;
+
+    setIsLoading(true); // Start loading
+    setGeneralError(""); // Clear previous errors
+
+    const formData = new FormData();
+    formData.append('fullName', fullName);
+    formData.append('email', email);
+    formData.append('phone', phone);
+    formData.append('password', password);
+    formData.append('jobTitle', jobTitle);
+    formData.append('company', company);
+    formData.append('experience', experience);
+    formData.append('qualification', qualification);
+    formData.append('expertise', expertise);
+    formData.append('availability', availability);
+    formData.append('hours', hours);
+    if (profilePic) formData.append('profilePic', profilePic);
+    if (idProof) formData.append('idProof', idProof);
+    
+    try {
+      // *** INTEGRATION POINT ***
+      // The URL now points to your local Express server endpoint.
+      const res = await fetch("http://localhost:5000/api/auth/register/registerMentor", {
+        method: "POST",
+        // Headers are set automatically by the browser for FormData
+        body: formData,
+      });
+
+      // The backend sends back JSON, even for errors
+      const data = await res.json();
+
+      if (res.ok) {
+        setShowSuccess(true);
+      } else {
+        // Use the error message from the backend response
+        setGeneralError(data.message || "Registration failed. Please try again.");
+      }
+    } catch (err) {
+      setGeneralError("Could not connect to the server. Please check your connection.");
+      console.error(err);
+    } finally {
+      setIsLoading(false); // Stop loading regardless of outcome
+    }
+  };
+  
+  const renderStep = () => {
+    switch (step) {
+      case 1:
+        return (
+          <div>
+            <h1 className="title">Mentor Registration</h1>
+            <p className="subtitle">Let's start with the basics.</p>
+            <input 
+              type="file" 
+              ref={profilePicRef} 
+              onChange={handleProfilePicChange} 
+              style={{ display: 'none' }} 
+              accept="image/png, image/jpeg"
+            />
+            <button className="upload-circle" onClick={() => profilePicRef.current.click()}>
+              {profilePic ? (
+                  <img src={URL.createObjectURL(profilePic)} alt="Profile Preview" className="profile-preview" />
+              ) : (
+                <Camera className="icon-large" />
+              )}
+            </button>
+            <p className="hint-text">Upload Profile Picture</p>
+            <input className="input-field" placeholder="Full Name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
+            <input className="input-field" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} type="email" />
+            <input className="input-field" placeholder="Phone Number" value={phone} onChange={(e) => setPhone(e.target.value)} type="tel" />
+            <input className="input-field" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} type="password" />
+          </div>
+        );
+      case 2:
+        return (
+            <div>
+                <h1 className="title">Professional Details</h1>
+                <p className="subtitle">Tell us about your experience.</p>
+                <input className="input-field" placeholder="Current Job Title" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
+                <input className="input-field" placeholder="Company" value={company} onChange={(e) => setCompany(e.target.value)} />
+                <input className="input-field" placeholder="Years of Experience" value={experience} onChange={(e) => setExperience(e.target.value)} type="number" />
+                <input className="input-field" placeholder="Highest Qualification" value={qualification} onChange={(e) => setQualification(e.target.value)} />
+            </div>
+        );
+      case 3:
+        return (
+            <div>
+                <h1 className="title">Mentorship Preferences</h1>
+                <p className="subtitle">How would you like to help?</p>
+                <input className="input-field" placeholder="Areas of Expertise (e.g., React, UI/UX)" value={expertise} onChange={(e) => setExpertise(e.target.value)} />
+                <input className="input-field" placeholder="Availability (e.g., Weekends, Evenings)" value={availability} onChange={(e) => setAvailability(e.target.value)} />
+                <input className="input-field" placeholder="Hours Per Week" value={hours} onChange={(e) => setHours(e.target.value)} type="number" />
+            </div>
+        );
+      case 4:
+          return (
+            <div>
+                <h1 className="title">Verification & Submission</h1>
+                <p className="subtitle">One last step to complete your profile.</p>
+                 <input 
+                  type="file" 
+                  ref={idProofRef} 
+                  onChange={handleIdProofChange} 
+                  style={{ display: 'none' }} 
+                  accept="image/*,application/pdf"
+                />
+                <button onClick={() => idProofRef.current.click()} className="upload-box">
+                    <CloudUpload className="icon-xlarge" />
+                    <p className="upload-box-text">
+                      {idProof ? 'ID Selected!' : 'Upload Your ID'}
+                    </p>
+                </button>
+                {idProof && (
+                    <div className="file-display">
+                        <FileText size={16} /> 
+                        <span>{idProof.name}</span>
+                    </div>
+                )}
+                <div onClick={() => setAgree(!agree)} className="checkbox-container">
+                    <div className={`checkbox ${agree ? 'checked' : ''}`}>
+                        {agree && <Check className="checkbox-icon" />}
+                    </div>
+                    <p className="terms-text">I agree to the Terms & Conditions.</p>
+                </div>
+            </div>
+          );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <>
+      <style>{`
+        /* --- General & Loading Styles --- */
+        body {
+          margin: 0;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+            'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+            sans-serif;
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+
+        .container {
+          display: flex; flex-direction: column; justify-content: center;
+          padding: 1.5rem; background-color: #f8fafc; min-height: 100vh;
+        }
+
+        .form-wrapper { max-width: 28rem; width: 100%; margin: 0 auto; }
+        .progress-bar-container { height: 0.5rem; background-color: #e5e7eb; border-radius: 9999px; overflow: hidden; margin-bottom: 1.25rem; }
+        .progress-bar { height: 100%; background-color: #4f46e5; border-radius: 9999px; transition: width 500ms ease-in-out; }
+        .step-container { min-height: 450px; }
+
+        /* --- Typography --- */
+        .title { font-size: 1.875rem; font-weight: 700; color: #1f2937; text-align: center; margin-bottom: 0.5rem; }
+        .subtitle { font-size: 1rem; color: #6b7280; text-align: center; margin-bottom: 1.5rem; }
+        .hint-text { color: #6b7280; text-align: center; margin-bottom: 1.5rem; font-size: 0.875rem; }
+        .error-message { color: #ef4444; font-size: 0.875rem; text-align: center; margin-bottom: 1rem; font-weight: 500; }
+        .login-link { display: block; text-align: center; color: #4f46e5; margin-top: 1.25rem; font-weight: 500; font-size: 0.875rem; text-decoration: none; }
+        .login-link:hover { text-decoration: underline; }
+
+        /* --- Form Elements --- */
+        .input-field {
+          width: 100%; background-color: #fff; border: 1px solid #d1d5db;
+          padding: 0.875rem; margin-bottom: 0.75rem; border-radius: 0.75rem;
+          font-size: 1rem; color: #111827; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+          outline: none; box-sizing: border-box;
+        }
+        .input-field:focus { border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.5); }
+        
+        /* --- Buttons --- */
+        .navigation-buttons { display: flex; align-items: center; margin-top: 1.25rem; margin-bottom: 1rem; }
+        .button-primary {
+          flex-grow: 1; background-color: #4f46e5; color: #fff; padding: 1rem;
+          border-radius: 0.75rem; font-weight: 700; font-size: 1.125rem;
+          border: none; cursor: pointer; display: flex; justify-content: center; align-items: center;
+          box-shadow: 0 10px 15px -3px rgb(79 70 229 / 0.3), 0 4px 6px -4px rgb(79 70 229 / 0.3);
+          transition: background-color 150ms ease-in-out;
+        }
+        .button-primary:hover { background-color: #4338ca; }
+        .button-primary:disabled { background-color: #a5b4fc; cursor: not-allowed; }
+        
+        .button-secondary {
+          background-color: transparent; border: 1px solid #d1d5db; color: #374151;
+          padding: 0.875rem 1.5rem; border-radius: 0.75rem; font-weight: 700;
+          font-size: 1.125rem; margin-right: 0.75rem; cursor: pointer; transition: background-color 150ms ease-in-out;
+        }
+        .button-secondary:hover { background-color: #f9fafb; }
+
+        .loading-spinner {
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* --- Step 1 & 4 Specifics --- */
+        .upload-circle {
+          width: 6rem; height: 6rem; border-radius: 50%; background-color: #e0e7ff;
+          margin: 0 auto 0.5rem auto; display: flex; justify-content: center;
+          align-items: center; border: 2px solid #c7d2fe; cursor: pointer; overflow: hidden;
+        }
+        .profile-preview { width: 100%; height: 100%; object-fit: cover; }
+        .icon-large { width: 2rem; height: 2rem; color: #4f46e5; }
+        .icon-xlarge { width: 2.5rem; height: 2.5rem; color: #4f46e5; }
+
+        .upload-box {
+          width: 100%; border: 2px dashed #c7d2fe; border-radius: 0.75rem; padding: 2rem 0;
+          display: flex; flex-direction: column; justify-content: center; align-items: center;
+          background-color: #eef2ff; transition: background-color 150ms ease-in-out; cursor: pointer;
+        }
+        .upload-box:hover { background-color: #e0e7ff; }
+        
+        .file-display {
+            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+            color: #4b5563; margin-top: -0.5rem; margin-bottom: 1.25rem; font-size: 0.875rem;
+        }
+        .upload-box-text { color: #4f46e5; margin-top: 0.5rem; font-weight: 700; }
+
+        .checkbox-container { display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem; cursor: pointer; }
+        .checkbox {
+          width: 1.25rem; height: 1.25rem; border: 1px solid #d1d5db;
+          border-radius: 0.375rem; margin-right: 0.75rem; display: flex;
+          align-items: center; justify-content: center;
+        }
+        .checkbox.checked { background-color: #4f46e5; border-color: #4f46e5; }
+        .checkbox-icon { width: 0.75rem; height: 0.75rem; color: white; }
+        .terms-text { font-size: 0.875rem; color: #4b5563; }
+
+        /* --- Modal Styles --- */
+        .modal-overlay { position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; padding: 1rem; }
+        .modal-box { background-color: #fff; border-radius: 0.75rem; padding: 2rem; width: 100%; max-width: 24rem; text-align: center; }
+        .modal-icon { font-size: 4rem; margin-bottom: 1rem; line-height: 1; }
+        .modal-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .modal-subtitle { color: #4b5563; margin-bottom: 1.5rem; }
+        .modal-button {
+          width: 100%; background-color: #4f46e5; color: #fff; padding: 0.75rem;
+          border-radius: 0.5rem; font-weight: 700; font-size: 1rem;
+          border: none; cursor: pointer; transition: background-color 150ms ease-in-out;
+        }
+        .modal-button:hover { background-color: #4338ca; }
+      `}</style>
+      <div className="container">
+        <div className="form-wrapper">
+            <div className="progress-bar-container">
+              <div className="progress-bar" style={{ width: `${(step / 4) * 100}%` }} />
+            </div>
+
+            <div className="step-container">
+              {generalError && <p className="error-message">{generalError}</p>}
+              {renderStep()}
+            </div>
+
+            <div className="navigation-buttons">
+              {step > 1 && (
+                  <button onClick={prevStep} className="button-secondary" disabled={isLoading}>
+                      Back
+                  </button>
+              )}
+              {step < 4 ? (
+                  <button onClick={nextStep} className="button-primary" disabled={isLoading}>
+                      Next
+                  </button>
+              ) : (
+                  <button onClick={handleRegister} className="button-primary" disabled={isLoading}>
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="loading-spinner" size={20} />
+                          <span className="ml-2">Submitting...</span>
+                        </>
+                      ) : (
+                        'Submit Registration'
+                      )}
+                  </button>
+              )}
+            </div>
+            
+            <a href="#" className="login-link">
+              Already have an account? Login
+            </a>
+        </div>
+
+        {showSuccess && (
+          <div className="modal-overlay">
+            <div className="modal-box">
+              <p className="modal-icon">✅</p>
+              <h2 className="modal-title">Registration Successful!</h2>
+              <p className="modal-subtitle">
+                Your mentor application has been submitted for review.
+              </p>
+              <button
+                onClick={() =>{setShowSuccess(false); router.replace('/home');}}
+                className="modal-button"
+              >
+                Ok
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+

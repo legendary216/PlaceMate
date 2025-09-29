@@ -2,14 +2,17 @@ import express from 'express';
 import connectDB from './config/db.js';
 import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
-import authRoutes from './Routes/authRoutes.js';
-import authMentorRoutes from './Routes/authMentorRoutes.js'
+import LoginRoutes from './Routes/LoginRoutes.js';
+import RegisterRoutes from './Routes/RegisterRoutes.js'
 import authAdminRoutes from './Routes/authAdminRoutes.js'
+import path, { dirname } from 'path';
+import { fileURLToPath } from 'url';
 import cors from "cors";
 
 
 dotenv.config(); 
-
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 
 const app = express();
@@ -21,12 +24,21 @@ app.use(cors({
 
 app.use(express.json());
 app.use(cookieParser())
+app.use(express.urlencoded({ extended: false }));
 
 // Connect to MongoDB Atlas
 connectDB();
-app.use('/api/auth/users',authRoutes)
-app.use('/api/auth/mentors',authMentorRoutes)
+app.use('/api/auth/login',LoginRoutes)
+app.use('/api/auth/register',RegisterRoutes)
 app.use('/api/auth/admin',authAdminRoutes)
+
+
+// Make the 'uploads' folder publicly accessible
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+
+// API Routes
+
 
 app.get('/', (req, res) => {
   res.send('MongoDB connection check successful!');

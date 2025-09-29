@@ -45,7 +45,7 @@ export default function Login() {
 
       if (!validateInputs()) return;
 
-      const res = await fetch("http://192.168.0.147:5000/api/auth/users/login", {
+      const res = await fetch("http://192.168.0.147:5000/api/auth/login/loginUser", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
