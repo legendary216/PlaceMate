@@ -21,8 +21,8 @@ const mentorSchema = new mongoose.Schema({
     password: {
         type: String,
         required: [true, 'Please add a password'],
-        minlength: 6,
-        select: false, // Don't return password by default
+       
+       
     },
     jobTitle: { type: String },
     company: { type: String },
@@ -38,7 +38,15 @@ const mentorSchema = new mongoose.Schema({
     idProof: {
         type: String,
         required: [true, 'Please upload an ID proof document'],
+    },
+
+    // --- THIS IS THE NEW, CRUCIAL FIELD ---
+    status: {
+      type: String,
+      enum: ['pending', 'approved', 'rejected'],
+      default: 'pending'
     }
+
 }, {
     timestamps: true
 });

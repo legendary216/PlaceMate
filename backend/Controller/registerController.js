@@ -31,7 +31,7 @@ export const registerMentor = async (req, res) => {
             // (This would require importing 'fs' and adding more logic)
             return res.status(400).json({ message: 'A user with this email already exists.' });
         }
-
+const baseUrl = `${req.protocol}://${req.get('host')}`;
         // Create new mentor instance
         mentor = new Mentor({
             fullName,
@@ -45,8 +45,8 @@ export const registerMentor = async (req, res) => {
             expertise,
             availability,
             hours,
-            idProof: req.files.idProof[0].path,
-            profilePic: req.files.profilePic ? req.files.profilePic[0].path : undefined
+            idProof: `${baseUrl}/${req.files.idProof[0].path}`,
+            profilePic: req.files.profilePic ? `${baseUrl}/${req.files.profilePic[0].path}` : undefined
         });
 
         // Encrypt password

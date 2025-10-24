@@ -13,7 +13,7 @@ export default function Home() {
     try {
       const storedUser = localStorage.getItem("user");
       if (storedUser) {
-        setUser(JSON.parse(storedUser));
+        setUser(JSON.parse(storedUser)); // User object includes role
       }
     } catch (e) {
       console.error("Failed to parse user data from localStorage", e);
@@ -36,7 +36,7 @@ export default function Home() {
 
   const handleLogout = async () => {
     try {
-      const res = await fetch("http://192.168.0.147:5000/api/auth/logout", {
+      const res = await fetch("http://localhost:5000/api/auth/login/logoutUser", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });
@@ -47,7 +47,7 @@ export default function Home() {
         showNotification("You have been logged out successfully.", "success");
         setTimeout(() => {
              window.location.href = "/"; // Redirect to login/landing page
-        }, 1500);
+        }, 1000);
       } else {
         const errorData = await res.json();
         showNotification(errorData.message || "Could not log out.");
@@ -119,16 +119,27 @@ export default function Home() {
         <main className="main-content">
           {user && <h2 className="welcome-text">Welcome, {user.name || 'User'}!</h2>}
           <div className="grid">
-            {features.map(({ id, title, Icon, nav }) => (
-              <a key={id} href={nav} className="card">
-                <Icon size={40} color="#4f46e5" />
-                <span className="card-text">{title}</span>
-              </a>
-            ))}
+            
+            {/* --- THIS IS THE UPDATED LOGIC --- */}
+            {features.map(({ id, title, Icon, nav }) => {
+              
+              // Check if the card is "Mentor Connect" AND if the user is an admin
+              let finalNav = nav;
+              if (title === "Mentor Connect" && user && user.role === 'admin') {
+                finalNav = "/adminMentors"; // If yes, send them to the admin page
+              }
+
+              return (
+                <a key={id} href={finalNav} className="card">
+                  <Icon size={40} color="#4f46e5" />
+                  <span className="card-text">{title}</span>
+                </a>
+              );
+            })}
+            
           </div>
         </main>
       </div>
     </>
   );
 }
-

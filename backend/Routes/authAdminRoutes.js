@@ -10,5 +10,6 @@ router.post('/logout', logoutAdmin);
 router.post('/register', registerAdmin);
 
 router.put('/approve-mentor/:mentorId', protect, approveMentor);
-
+ 
 export default router;
+ 

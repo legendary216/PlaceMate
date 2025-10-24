@@ -26,6 +26,7 @@ export default function Login() {
     return true;
   };
 
+  // --- THIS FUNCTION IS NOW UPDATED ---
   const handleLogin = async (e) => {
     e.preventDefault(); // Prevent the form from causing a page refresh
 
@@ -37,8 +38,7 @@ export default function Login() {
 
       if (!validateInputs()) return;
 
-      // Note: Ensure this endpoint matches your single, unified login route in the backend.
-      const res = await fetch("http://192.168.0.147:5000/api/auth/login/handlelogin", {
+      const res = await fetch("http://localhost:5000/api/auth/login/handlelogin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, role }),
@@ -47,14 +47,29 @@ export default function Login() {
       const data = await res.json();
 
       if (res.ok) {
-        // Save the token to localStorage
+        // We have a successful login. Save data first.
         localStorage.setItem("token", data.token);
-        
-        // **Crucially, save the user object AND the selected role to localStorage**
-        // This is how other parts of your app will know who is logged in.
         localStorage.setItem("user", JSON.stringify({ ...data.user, role: role }));
         
+        // --- NEW LOGIC ---
+        // Check mentor status *before* showing the modal
+        if (role === 'mentor') {
+          if (data.user.status === 'pending') {
+            // Redirect immediately, skip modal
+            window.location.href = "/pending";
+            return; // Stop execution
+          }
+          if (data.user.status === 'rejected') {
+            // Redirect immediately, skip modal
+            window.location.href = "/rejected";
+            return; // Stop execution
+          }
+          // If mentor status is 'approved', fall through to show modal
+        }
+        
+        // For Admins, Users, and Approved Mentors:
         setShowSuccess(true); // Show the success modal
+        
       } else {
         setError(data.message || "Invalid credentials");
       }
@@ -64,17 +79,12 @@ export default function Login() {
     }
   };
   
+  // --- THIS FUNCTION IS NOW SIMPLIFIED ---
+  // It only runs for approved logins (admin, user, approved mentor)
   const handleSuccessRedirect = () => {
       setShowSuccess(false);
-      // Navigate to different dashboards based on the role
-      if (role === 'admin') {
-          window.location.href = "/home";
-      } else if (role === 'mentor') {
-          // As per your request, mentor also goes to home. This can be changed to /mentor/dashboard if needed.
-          window.location.href = "/home";
-      } else {
-          window.location.href = "/home";
-      }
+      // Everyone who sees the modal is approved, so just send to /home
+      window.location.href = "/home";
   };
 
   return (
@@ -211,7 +221,7 @@ export default function Login() {
           <p className="subtitle">Log in to continue to PlaceMate</p>
 
           <div className="role-selector-container">
-            <button type="button" className={`role-button ${role === 'user' ? 'role-button-selected' : ''}`} onClick={() => setRole('user')}>
+            <button typeD="button" className={`role-button ${role === 'user' ? 'role-button-selected' : ''}`} onClick={() => setRole('user')}>
               <span className={`role-button-text ${role === 'user' ? 'role-button-text-selected' : ''}`}>User</span>
             </button>
             <button type="button" className={`role-button ${role === 'mentor' ? 'role-button-selected' : ''}`} onClick={() => setRole('mentor')}>
@@ -266,4 +276,3 @@ export default function Login() {
     </>
   );
 }
-

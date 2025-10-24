@@ -365,7 +365,7 @@ export default function App() {
               )}
             </div>
             
-            <a href="#" className="login-link">
+            <a href="/" className="login-link">
               Already have an account? Login
             </a>
         </div>
@@ -379,7 +379,7 @@ export default function App() {
                 Your mentor application has been submitted for review.
               </p>
               <button
-                onClick={() =>{setShowSuccess(false); router.replace('/home');}}
+                onClick={() =>{setShowSuccess(false); router.replace('/');}}
                 className="modal-button"
               >
                 Ok

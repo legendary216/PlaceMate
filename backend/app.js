@@ -6,6 +6,7 @@ import LoginRoutes from './Routes/LoginRoutes.js';
 import RegisterRoutes from './Routes/RegisterRoutes.js'
 import authAdminRoutes from './Routes/authAdminRoutes.js'
 import questionRoutes from './Routes/QuestionRotues.js';
+import adminMentorRoutes from './Routes/adminMentorRoutes.js';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import cors from "cors";
@@ -26,6 +27,7 @@ app.use(cors({
 app.use(express.json());
 app.use(cookieParser())
 app.use(express.urlencoded({ extended: false }));
+app.use('/uploads', express.static('uploads'));
 
 // Connect to MongoDB Atlas
 connectDB();
@@ -33,6 +35,7 @@ app.use('/api/auth/login',LoginRoutes)
 app.use('/api/auth/register',RegisterRoutes)
 app.use('/api/auth/admin',authAdminRoutes)
 app.use('/api/questions', questionRoutes);
+app.use('/api/admin', adminMentorRoutes);
 
 // Make the 'uploads' folder publicly accessible
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
