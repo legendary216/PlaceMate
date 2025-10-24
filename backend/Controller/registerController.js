@@ -15,8 +15,7 @@ export const registerMentor = async (req, res) => {
             experience,
             qualification,
             expertise,
-            availability,
-            hours
+           availabilitySlots
         } = req.body;
 
         // Check if required files were uploaded
@@ -31,6 +30,8 @@ export const registerMentor = async (req, res) => {
             // (This would require importing 'fs' and adding more logic)
             return res.status(400).json({ message: 'A user with this email already exists.' });
         }
+
+        const parsedSlots = availabilitySlots ? JSON.parse(availabilitySlots) : [];
 const baseUrl = `${req.protocol}://${req.get('host')}`;
         // Create new mentor instance
         mentor = new Mentor({
@@ -43,10 +44,9 @@ const baseUrl = `${req.protocol}://${req.get('host')}`;
             experience,
             qualification,
             expertise,
-            availability,
-            hours,
             idProof: `${baseUrl}/${req.files.idProof[0].path}`,
-            profilePic: req.files.profilePic ? `${baseUrl}/${req.files.profilePic[0].path}` : undefined
+            profilePic: req.files.profilePic ? `${baseUrl}/${req.files.profilePic[0].path}` : undefined,
+            availabilitySlots: parsedSlots
         });
 
         // Encrypt password

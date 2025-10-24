@@ -81,10 +81,24 @@ export default function Login() {
   
   // --- THIS FUNCTION IS NOW SIMPLIFIED ---
   // It only runs for approved logins (admin, user, approved mentor)
-  const handleSuccessRedirect = () => {
+ const handleSuccessRedirect = () => {
       setShowSuccess(false);
-      // Everyone who sees the modal is approved, so just send to /home
-      window.location.href = "/home";
+      
+      // Get the role the user *selected* on the login form
+      const selectedRole = role; 
+
+      // Redirect based on the role
+      if (selectedRole === 'admin') {
+          window.location.href = "/home"; // Admins go to home
+      } else if (selectedRole === 'user') {
+          window.location.href = "/home"; // Users go to home
+      } else if (selectedRole === 'mentor') {
+          // Approved mentors (who see the modal) go to their dashboard
+          window.location.href = "/mentor"; 
+      } else {
+          // Fallback just in case
+          window.location.href = "/home";
+      }
   };
 
   return (
@@ -254,7 +268,7 @@ export default function Login() {
           </button>
 
           {role !== 'admin' && (
-            <a href={role === 'mentor' ? '/mentor' : '/register'} className="link">
+            <a href={role === 'mentor' ? '/mentor-register' : '/register'} className="link">
               Don’t have an account? Register
             </a>
           )}

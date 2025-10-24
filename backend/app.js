@@ -7,7 +7,7 @@ import RegisterRoutes from './Routes/RegisterRoutes.js'
 import authAdminRoutes from './Routes/authAdminRoutes.js'
 import questionRoutes from './Routes/QuestionRotues.js';
 import adminMentorRoutes from './Routes/adminMentorRoutes.js';
-import mentorRoutes from './routes/mentorRoutes.js';
+import mentorRoutes from './Routes/mentorRoutes.js';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import cors from "cors";

@@ -1,12 +1,21 @@
 import React, { useState, useRef } from "react";
-import { Camera, CloudUpload, Check, FileText, Loader2 } from 'lucide-react';
+// Added Plus and Trash2 for the new UI
+import { Camera, CloudUpload, Check, FileText, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from "expo-router"; 
-// This is the fully integrated web component.
+
+// --- Helper constants for the new Step 3 ---
+const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const timeSlots = Array.from({ length: 24 * 2 }, (_, i) => { // 30-min intervals
+  const totalMinutes = i * 30;
+  const hours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
+  const minutes = (totalMinutes % 60).toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
+});
+// ---
 
 export default function App() {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  // Refs for file inputs
   const profilePicRef = useRef(null);
   const idProofRef = useRef(null);
 
@@ -20,35 +29,52 @@ export default function App() {
   const [experience, setExperience] = useState("");
   const [qualification, setQualification] = useState("");
   const [expertise, setExpertise] = useState("");
-  const [availability, setAvailability] = useState("");
-  const [hours, setHours] = useState("");
+  
+  // --- UPDATED STATE ---
+  // Removed availability and hours, added availabilitySlots
+  const [availabilitySlots, setAvailabilitySlots] = useState([]);
+  // ---
+  
   const [profilePic, setProfilePic] = useState(null);
   const [idProof, setIdProof] = useState(null);
   const [agree, setAgree] = useState(false);
 
-  // Errors, success, and loading states
   const [generalError, setGeneralError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
-  const [isLoading, setIsLoading] = useState(false); // New state for loading indicator
+  const [isLoading, setIsLoading] = useState(false);
 
   const emailRegex = /\S+@\S+\.\S+/;
 
   const handleProfilePicChange = (event) => {
     const file = event.target.files[0];
-    if (file) {
-      setProfilePic(file);
-    }
+    if (file) setProfilePic(file);
   };
 
   const handleIdProofChange = (event) => {
     const file = event.target.files[0];
-    if (file) {
-      setIdProof(file);
-    }
+    if (file) setIdProof(file);
   };
 
+  // --- Helper functions for new Step 3 ---
+  const addSlot = () => {
+    setAvailabilitySlots([
+      ...availabilitySlots, 
+      { day: 'Monday', startTime: '09:00', endTime: '10:00' }
+    ]);
+  };
+
+  const removeSlot = (index) => {
+    setAvailabilitySlots(availabilitySlots.filter((_, i) => i !== index));
+  };
+
+  const updateSlot = (index, field, value) => {
+    const newSlots = [...availabilitySlots];
+    newSlots[index][field] = value;
+    setAvailabilitySlots(newSlots);
+  };
+  // ---
+
   const validateStep = () => {
-    // Reset error at the beginning of validation
     setGeneralError("");
     if (step === 1) {
       if (!fullName.trim() || !email.trim() || !phone.trim() || !password.trim()) {
@@ -64,6 +90,7 @@ export default function App() {
         return false;
       }
     }
+    // You could add validation for step 3 here if needed
     if (step === 4) {
       if (!idProof) {
           setGeneralError("Please upload your ID for verification.");
@@ -87,11 +114,12 @@ export default function App() {
     if (step > 1) setStep(step - 1);
   };
 
+  // --- UPDATED SUBMIT HANDLER ---
   const handleRegister = async () => {
     if (!validateStep()) return;
 
-    setIsLoading(true); // Start loading
-    setGeneralError(""); // Clear previous errors
+    setIsLoading(true);
+    setGeneralError("");
 
     const formData = new FormData();
     formData.append('fullName', fullName);
@@ -103,43 +131,41 @@ export default function App() {
     formData.append('experience', experience);
     formData.append('qualification', qualification);
     formData.append('expertise', expertise);
-    formData.append('availability', availability);
-    formData.append('hours', hours);
+    
+    // Updated: Send the slots array as a JSON string
+    formData.append('availabilitySlots', JSON.stringify(availabilitySlots));
+    
     if (profilePic) formData.append('profilePic', profilePic);
     if (idProof) formData.append('idProof', idProof);
     
     try {
-      // *** INTEGRATION POINT ***
-      // The URL now points to your local Express server endpoint.
       const res = await fetch("http://localhost:5000/api/auth/register/registerMentor", {
         method: "POST",
-        // Headers are set automatically by the browser for FormData
         body: formData,
       });
 
-      // The backend sends back JSON, even for errors
       const data = await res.json();
-
       if (res.ok) {
         setShowSuccess(true);
       } else {
-        // Use the error message from the backend response
         setGeneralError(data.message || "Registration failed. Please try again.");
       }
     } catch (err) {
       setGeneralError("Could not connect to the server. Please check your connection.");
       console.error(err);
     } finally {
-      setIsLoading(false); // Stop loading regardless of outcome
+      setIsLoading(false);
     }
   };
   
+  // --- UPDATED STEP 3 RENDER ---
   const renderStep = () => {
     switch (step) {
       case 1:
         return (
           <div>
             <h1 className="title">Mentor Registration</h1>
+            {/* ... (rest of step 1 is unchanged) ... */}
             <p className="subtitle">Let's start with the basics.</p>
             <input 
               type="file" 
@@ -166,6 +192,7 @@ export default function App() {
         return (
             <div>
                 <h1 className="title">Professional Details</h1>
+                {/* ... (rest of step 2 is unchanged) ... */}
                 <p className="subtitle">Tell us about your experience.</p>
                 <input className="input-field" placeholder="Current Job Title" value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} />
                 <input className="input-field" placeholder="Company" value={company} onChange={(e) => setCompany(e.target.value)} />
@@ -177,16 +204,59 @@ export default function App() {
         return (
             <div>
                 <h1 className="title">Mentorship Preferences</h1>
-                <p className="subtitle">How would you like to help?</p>
-                <input className="input-field" placeholder="Areas of Expertise (e.g., React, UI/UX)" value={expertise} onChange={(e) => setExpertise(e.target.value)} />
-                <input className="input-field" placeholder="Availability (e.g., Weekends, Evenings)" value={availability} onChange={(e) => setAvailability(e.target.value)} />
-                <input className="input-field" placeholder="Hours Per Week" value={hours} onChange={(e) => setHours(e.target.value)} type="number" />
+                <p className="subtitle">Set your weekly availability.</p>
+                
+                {/* Expertise is still here */}
+                <input 
+                  className="input-field" 
+                  placeholder="Areas of Expertise (e.g., React, UI/UX)" 
+                  value={expertise} 
+                  onChange={(e) => setExpertise(e.target.value)} 
+                />
+
+                {/* New Slot Picker UI */}
+                <div className="slots-list">
+                  {availabilitySlots.map((slot, index) => (
+                    <div key={index} className="slot-card">
+                      <div className="slot-inputs">
+                        <select 
+                          value={slot.day} 
+                          onChange={(e) => updateSlot(index, 'day', e.target.value)}
+                          className="form-select"
+                        >
+                          {daysOfWeek.map(day => <option key={day} value={day}>{day}</option>)}
+                        </select>
+                        <select 
+                          value={slot.startTime} 
+                          onChange={(e) => updateSlot(index, 'startTime', e.target.value)}
+                          className="form-select"
+                        >
+                          {timeSlots.map(time => <option key={time} value={time}>{time}</option>)}
+                        </select>
+                        <select 
+                          value={slot.endTime} 
+                          onChange={(e) => updateSlot(index, 'endTime', e.target.value)}
+                          className="form-select"
+                        >
+                          {timeSlots.map(time => <option key={time} value={time}>{time}</option>)}
+                        </select>
+                      </div>
+                      <button onClick={() => removeSlot(index)} className="delete-btn" title="Remove slot">
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  ))}
+                  <button type="button" onClick={addSlot} className="add-btn">
+                    <Plus size={18} /> Add Time Slot
+                  </button>
+                </div>
             </div>
         );
       case 4:
           return (
             <div>
                 <h1 className="title">Verification & Submission</h1>
+                {/* ... (rest of step 4 is unchanged) ... */}
                 <p className="subtitle">One last step to complete your profile.</p>
                  <input 
                   type="file" 
@@ -195,7 +265,7 @@ export default function App() {
                   style={{ display: 'none' }} 
                   accept="image/*,application/pdf"
                 />
-                <button onClick={() => idProofRef.current.click()} className="upload-box">
+                <button type="button" onClick={() => idProofRef.current.click()} className="upload-box">
                     <CloudUpload className="icon-xlarge" />
                     <p className="upload-box-text">
                       {idProof ? 'ID Selected!' : 'Upload Your ID'}
@@ -223,21 +293,9 @@ export default function App() {
   return (
     <>
       <style>{`
-        /* --- General & Loading Styles --- */
-        body {
-          margin: 0;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-            'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-            sans-serif;
-          -webkit-font-smoothing: antialiased;
-          -moz-osx-font-smoothing: grayscale;
-        }
-
-        .container {
-          display: flex; flex-direction: column; justify-content: center;
-          padding: 1.5rem; background-color: #f8fafc; min-height: 100vh;
-        }
-
+        /* --- General Styles --- */
+        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+        .container { display: flex; flex-direction: column; justify-content: center; padding: 1.5rem; background-color: #f8fafc; min-height: 100vh; }
         .form-wrapper { max-width: 28rem; width: 100%; margin: 0 auto; }
         .progress-bar-container { height: 0.5rem; background-color: #e5e7eb; border-radius: 9999px; overflow: hidden; margin-bottom: 1.25rem; }
         .progress-bar { height: 100%; background-color: #4f46e5; border-radius: 9999px; transition: width 500ms ease-in-out; }
@@ -271,65 +329,63 @@ export default function App() {
         }
         .button-primary:hover { background-color: #4338ca; }
         .button-primary:disabled { background-color: #a5b4fc; cursor: not-allowed; }
-        
         .button-secondary {
           background-color: transparent; border: 1px solid #d1d5db; color: #374151;
           padding: 0.875rem 1.5rem; border-radius: 0.75rem; font-weight: 700;
           font-size: 1.125rem; margin-right: 0.75rem; cursor: pointer; transition: background-color 150ms ease-in-out;
         }
         .button-secondary:hover { background-color: #f9fafb; }
-
-        .loading-spinner {
-            animation: spin 1s linear infinite;
-        }
+        .loading-spinner { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
         /* --- Step 1 & 4 Specifics --- */
-        .upload-circle {
-          width: 6rem; height: 6rem; border-radius: 50%; background-color: #e0e7ff;
-          margin: 0 auto 0.5rem auto; display: flex; justify-content: center;
-          align-items: center; border: 2px solid #c7d2fe; cursor: pointer; overflow: hidden;
-        }
+        .upload-circle { width: 6rem; height: 6rem; border-radius: 50%; background-color: #e0e7ff; margin: 0 auto 0.5rem auto; display: flex; justify-content: center; align-items: center; border: 2px solid #c7d2fe; cursor: pointer; overflow: hidden; }
         .profile-preview { width: 100%; height: 100%; object-fit: cover; }
         .icon-large { width: 2rem; height: 2rem; color: #4f46e5; }
         .icon-xlarge { width: 2.5rem; height: 2.5rem; color: #4f46e5; }
-
-        .upload-box {
-          width: 100%; border: 2px dashed #c7d2fe; border-radius: 0.75rem; padding: 2rem 0;
-          display: flex; flex-direction: column; justify-content: center; align-items: center;
-          background-color: #eef2ff; transition: background-color 150ms ease-in-out; cursor: pointer;
-        }
+        .upload-box { width: 100%; border: 2px dashed #c7d2fe; border-radius: 0.75rem; padding: 2rem 0; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #eef2ff; transition: background-color 150ms ease-in-out; cursor: pointer; }
         .upload-box:hover { background-color: #e0e7ff; }
-        
-        .file-display {
-            display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-            color: #4b5563; margin-top: -0.5rem; margin-bottom: 1.25rem; font-size: 0.875rem;
-        }
+        .file-display { display: flex; align-items: center; justify-content: center; gap: 0.5rem; color: #4b5563; margin-top: -0.5rem; margin-bottom: 1.25rem; font-size: 0.875rem; }
         .upload-box-text { color: #4f46e5; margin-top: 0.5rem; font-weight: 700; }
-
         .checkbox-container { display: flex; align-items: center; justify-content: center; margin-bottom: 1.25rem; cursor: pointer; }
-        .checkbox {
-          width: 1.25rem; height: 1.25rem; border: 1px solid #d1d5db;
-          border-radius: 0.375rem; margin-right: 0.75rem; display: flex;
-          align-items: center; justify-content: center;
-        }
+        .checkbox { width: 1.25rem; height: 1.25rem; border: 1px solid #d1d5db; border-radius: 0.375rem; margin-right: 0.75rem; display: flex; align-items: center; justify-content: center; }
         .checkbox.checked { background-color: #4f46e5; border-color: #4f46e5; }
         .checkbox-icon { width: 0.75rem; height: 0.75rem; color: white; }
         .terms-text { font-size: 0.875rem; color: #4b5563; }
 
+        /* --- NEW STYLES FOR STEP 3 --- */
+        .slots-list { display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem; }
+        .slot-card { display: flex; align-items: center; gap: 0.5rem; background-color: #fff; border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 1rem; }
+        .slot-inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; flex-grow: 1; }
+        .form-select {
+          width: 100%; box-sizing: border-box; border: 1px solid #d1d5db;
+          border-radius: 8px; padding: 0.5rem; font-size: 0.9rem;
+          background-color: #fff;
+        }
+        .delete-btn {
+          background-color: #fee2e2; color: #991b1b; border: none;
+          width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+          display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .add-btn {
+          display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+          background-color: #eef2ff; color: #4f46e5; border: none;
+          padding: 0.75rem 1.25rem; border-radius: 8px; font-weight: 600;
+          cursor: pointer; font-size: 1rem; margin-top: 1rem; width: 100%;
+        }
+        /* --- End of Step 3 Styles --- */
+
         /* --- Modal Styles --- */
-        .modal-overlay { position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; padding: 1rem; }
+        .modal-overlay { position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; padding: 1rem; z-index: 100; }
         .modal-box { background-color: #fff; border-radius: 0.75rem; padding: 2rem; width: 100%; max-width: 24rem; text-align: center; }
         .modal-icon { font-size: 4rem; margin-bottom: 1rem; line-height: 1; }
         .modal-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
         .modal-subtitle { color: #4b5563; margin-bottom: 1.5rem; }
-        .modal-button {
-          width: 100%; background-color: #4f46e5; color: #fff; padding: 0.75rem;
-          border-radius: 0.5rem; font-weight: 700; font-size: 1rem;
-          border: none; cursor: pointer; transition: background-color 150ms ease-in-out;
-        }
+        .modal-button { width: 100%; background-color: #4f46e5; color: #fff; padding: 0.75rem; border-radius: 0.5rem; font-weight: 700; font-size: 1rem; border: none; cursor: pointer; transition: background-color 150ms ease-in-out; }
         .modal-button:hover { background-color: #4338ca; }
       `}</style>
+
+      {/* --- FORM JSX (Unchanged) --- */}
       <div className="container">
         <div className="form-wrapper">
             <div className="progress-bar-container">
@@ -370,6 +426,7 @@ export default function App() {
             </a>
         </div>
 
+        {/* --- MODAL (Redirects to / on success) --- */}
         {showSuccess && (
           <div className="modal-overlay">
             <div className="modal-box">
@@ -391,4 +448,3 @@ export default function App() {
     </>
   );
 }
-

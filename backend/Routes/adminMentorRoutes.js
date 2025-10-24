@@ -8,13 +8,13 @@ import {
 } from '../Controller/adminMentorController.js';
 
 // Import your corrected protect middleware
-import { protect } from '../Middleware/authMiddleware.js'; // Adjust path as needed
+import { protect , authorize } from '../Middleware/authMiddleware.js'; // Adjust path as needed
 
 // --- Apply Middleware ---
 // This one line protects ALL routes in this file.
 // It will check for the token AND ensure the user is in the admin collection.
 router.use(protect);
-
+router.use(authorize('admin'));
 // --- Routes ---
 // Only an admin who passed the 'protect' middleware can access these.
 router.get('/mentors/pending', getPendingMentors);

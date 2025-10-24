@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose'; // Using import
 
 const mentorSchema = new mongoose.Schema({
     fullName: {
@@ -21,16 +21,28 @@ const mentorSchema = new mongoose.Schema({
     password: {
         type: String,
         required: [true, 'Please add a password'],
-       
-       
     },
     jobTitle: { type: String },
     company: { type: String },
     experience: { type: String },
     qualification: { type: String },
     expertise: { type: String },
-    availability: { type: String },
-    hours: { type: String },
+    
+    // --- OLD FIELDS REMOVED ---
+    // availability: { type: String },
+    // hours: { type: String },
+
+    // --- NEW FIELD ADDED ---
+    availabilitySlots: [{
+        day: {
+            type: String,
+            enum: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+            required: true
+        },
+        startTime: { type: String, required: true }, // e.g., "14:00"
+        endTime: { type: String, required: true }    // e.g., "16:00"
+    }],
+
     profilePic: {
         type: String,
         default: 'no-photo.jpg'
@@ -39,16 +51,13 @@ const mentorSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please upload an ID proof document'],
     },
-
-    // --- THIS IS THE NEW, CRUCIAL FIELD ---
     status: {
       type: String,
       enum: ['pending', 'approved', 'rejected'],
       default: 'pending'
     }
-
 }, {
     timestamps: true
 });
 
-module.exports = mongoose.model('Mentor', mentorSchema);
+export default mongoose.model('Mentor', mentorSchema); // Using export default

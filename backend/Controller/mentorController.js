@@ -53,3 +53,46 @@ export const getMentorProfile = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+export const getMyAvailability = async (req, res) => {
+  try {
+    const mentor = await Mentor.findById(req.user.id); // 'req.user.id' from 'protect'
+    if (!mentor) {
+      return res.status(404).json({ message: 'Mentor not found' });
+    }
+    res.status(200).json(mentor.availabilitySlots);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
+
+// --- ADD THIS FUNCTION ---
+// @desc    Update the logged-in mentor's availability
+// @route   PATCH /api/mentors/my-availability
+// @access  Private (Mentor only)
+export const updateMyAvailability = async (req, res) => {
+  try {
+    // req.body should be an array of slots, e.g.:
+    // [ { day: "Monday", startTime: "10:00", endTime: "11:00" } ]
+    const { availabilitySlots } = req.body;
+
+    if (!Array.isArray(availabilitySlots)) {
+      return res.status(400).json({ message: 'Invalid data format.' });
+    }
+
+    const mentor = await Mentor.findByIdAndUpdate(
+      req.user.id,
+      { availabilitySlots: availabilitySlots },
+      { new: true, runValidators: true }
+    );
+
+    if (!mentor) {
+      return res.status(404).json({ message: 'Mentor not found' });
+    }
+    res.status(200).json(mentor.availabilitySlots);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};
