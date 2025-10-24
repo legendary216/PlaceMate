@@ -177,7 +177,7 @@ export default function MentorHome() {
     <>
       <style>{`
         body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafe; }
-        .page-container { display: flex; flex-direction: column; min-height: 100vh; }
+        .page-container { display: flex; flex-direction: column; min-height: 100vh; overflow-y: auto}
         .header-container { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; background-color: #fff; border-bottom: 1px solid #e5e7eb; }
         .header-left { display: flex; flex-direction: column; }
         .header-title { font-size: 1.75rem; font-weight: 700; color: #111827; margin: 0; }

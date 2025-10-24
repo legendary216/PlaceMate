@@ -8,7 +8,7 @@ export default function Layout() {
         {/* Login/Register pages */}
         <Stack.Screen name="index" />
         <Stack.Screen name="register" />
-        <Stack.Screen name="mentor-register" /> {/* <-- Renamed */}
+        <Stack.Screen name="mentor-register" /> 
 
         {/* Main app pages */}
         <Stack.Screen name="home" />
@@ -21,11 +21,16 @@ export default function Layout() {
         {/* Admin Page */}
         <Stack.Screen name="adminMentors" />
 
-        {/* User-facing Mentor Browsing */}
-        <Stack.Screen name="mentorconnect" /> 
-
         {/* Mentor Dashboard (this is the folder) */}
         <Stack.Screen name="mentor" /> 
+
+        {/* Student Bookings Page */}
+        <Stack.Screen name="my-bookings" /> 
+
+        {/* --- REMOVE THIS LINE --- */}
+        {/* <Stack.Screen name="mentorconnect" /> */} 
+        {/* The app/mentorconnect folder automatically handles this group */}
+
       </Stack>
 
       {/* 🔔 Global flash message */}

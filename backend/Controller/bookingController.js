@@ -159,3 +159,24 @@ export const getMySchedule = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
+export const getMyStudentSchedule = async (req, res) => {
+  try {
+    const studentId = req.user.id; // From 'protect' middleware
+    const now = new Date();
+
+    const upcomingBookings = await Booking.find({
+      student: studentId, // Query by student ID
+      startTime: { $gte: now },
+      status: 'confirmed'
+    })
+    .populate('mentor', 'fullName jobTitle company profilePic') // Get mentor details
+    .sort({ startTime: 1 }); // Order by soonest first
+
+    res.status(200).json(upcomingBookings);
+
+  } catch (error) {
+    console.error('Error fetching student schedule:', error);
+    res.status(500).json({ message: 'Server Error' });
+  }
+};

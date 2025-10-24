@@ -3,7 +3,8 @@ const router = express.Router();
 import {
   getAvailableSlots,
   createBooking,
-  getMySchedule
+  getMySchedule,
+  getMyStudentSchedule
 } from '../Controller/bookingController.js';
 
 // Import auth middleware
@@ -18,5 +19,7 @@ router.get('/available/:mentorId', protect, authorize('user'), getAvailableSlots
 router.post('/', protect, authorize('user'), createBooking);
 
 router.get('/my-schedule', protect, authorize('mentor'), getMySchedule);
+
+router.get('/my-schedule-student', protect, authorize('user'), getMyStudentSchedule);
 
 export default router;
