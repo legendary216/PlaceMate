@@ -7,6 +7,7 @@ import RegisterRoutes from './Routes/RegisterRoutes.js'
 import authAdminRoutes from './Routes/authAdminRoutes.js'
 import questionRoutes from './Routes/QuestionRotues.js';
 import adminMentorRoutes from './Routes/adminMentorRoutes.js';
+import mentorRoutes from './routes/mentorRoutes.js';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import cors from "cors";
@@ -36,13 +37,14 @@ app.use('/api/auth/register',RegisterRoutes)
 app.use('/api/auth/admin',authAdminRoutes)
 app.use('/api/questions', questionRoutes);
 app.use('/api/admin', adminMentorRoutes);
+app.use('/api/mentors', mentorRoutes);
 
 // Make the 'uploads' folder publicly accessible
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
+ 
 
 // API Routes
-
+ 
 
 app.get('/', (req, res) => {
   res.send('MongoDB connection check successful!');
