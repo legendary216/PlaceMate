@@ -8,6 +8,8 @@ import authAdminRoutes from './Routes/authAdminRoutes.js'
 import questionRoutes from './Routes/QuestionRotues.js';
 import adminMentorRoutes from './Routes/adminMentorRoutes.js';
 import mentorRoutes from './Routes/mentorRoutes.js';
+import connectionRoutes from './Routes/connectionRoutes.js';
+import bookingRoutes from './Routes/bookingRoutes.js';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import cors from "cors";
@@ -38,6 +40,8 @@ app.use('/api/auth/admin',authAdminRoutes)
 app.use('/api/questions', questionRoutes);
 app.use('/api/admin', adminMentorRoutes);
 app.use('/api/mentors', mentorRoutes);
+app.use('/api/connections', connectionRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 // Make the 'uploads' folder publicly accessible
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

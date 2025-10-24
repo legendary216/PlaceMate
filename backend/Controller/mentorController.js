@@ -17,20 +17,17 @@ export const getApprovedMentors = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
-
 export const getMentorProfile = async (req, res) => {
   try {
     const mentor = await Mentor.findById(req.params.id);
 
-    // 1. Check if mentor exists
-    // 2. CRUCIAL: Check if mentor is 'approved'.
+    // 1. Check if mentor exists and is approved
     if (!mentor || mentor.status !== 'approved') {
       return res.status(404).json({ message: 'Mentor not found' });
     }
 
-    // 3. Send ONLY public data.
-    //    We explicitly build a new object to avoid leaking
-    //    email, phone, idProof, or password.
+    // 2. Construct the public profile object
+    //    Include the new 'availabilitySlots' and remove old fields
     const publicProfile = {
       _id: mentor._id,
       fullName: mentor.fullName,
@@ -39,16 +36,21 @@ export const getMentorProfile = async (req, res) => {
       experience: mentor.experience,
       qualification: mentor.qualification,
       expertise: mentor.expertise,
-      availability: mentor.availability,
-      hours: mentor.hours,
-      profilePic: mentor.profilePic, // This is the full URL we built
+      profilePic: mentor.profilePic,
+      // --- ADD THIS FIELD ---
+      availabilitySlots: mentor.availabilitySlots,
+      // --- REMOVE THESE FIELDS ---
+      // availability: mentor.availability, // Old field
+      // hours: mentor.hours,             // Old field
     };
     
+    // 3. Send the corrected object
     res.status(200).json(publicProfile);
+
   } catch (err) {
-    console.error(err);
+    console.error('Error fetching mentor profile:', err); // Log the specific error
     if (err.kind === 'ObjectId') {
-      return res.status(404).json({ message: 'Mentor not found' });
+      return res.status(404).json({ message: 'Mentor not found (Invalid ID format)' });
     }
     res.status(500).json({ message: 'Server error' });
   }
