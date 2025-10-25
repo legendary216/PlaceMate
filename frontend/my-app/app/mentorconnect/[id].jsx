@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Loader2, Briefcase, Brain, Clock, Award, Calendar, Send, CheckCircle, Hourglass } from 'lucide-react'; // Added icons
+import { ArrowLeft, Loader2, Briefcase, Brain, Clock, Award, Calendar, Send, CheckCircle, Hourglass,DollarSign } from 'lucide-react'; // Added icons
 import { useRouter, useLocalSearchParams } from 'expo-router';
 
 export default function MentorProfile() {
@@ -189,6 +189,14 @@ export default function MentorProfile() {
           <DetailCard Icon={Award} title="Qualification" value={mentor.qualification || 'N/A'} />
           <DetailCard Icon={Brain} title="Areas of Expertise" value={mentor.expertise || 'N/A'} />
           {/* Removed old Availability/Hours cards */}
+          {/* --- ADD FEES CARD --- */}
+          <DetailCard
+            Icon={DollarSign}
+            title="Session Fee"
+            // Display 'Free' if fees are 0 or not set, otherwise format (e.g., INR)
+            value={mentor.fees > 0 ? `₹${mentor.fees}` : 'Free'}
+          />
+          {/* --- END FEES CARD --- */}
         </div>
       </div>
     );

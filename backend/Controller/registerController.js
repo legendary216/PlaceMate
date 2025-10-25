@@ -15,7 +15,8 @@ export const registerMentor = async (req, res) => {
             experience,
             qualification,
             expertise,
-           availabilitySlots
+           availabilitySlots,
+           fees
         } = req.body;
 
         // Check if required files were uploaded
@@ -32,6 +33,7 @@ export const registerMentor = async (req, res) => {
         }
 
         const parsedSlots = availabilitySlots ? JSON.parse(availabilitySlots) : [];
+        const numericFees = fees ? Number(fees) : 0;
 const baseUrl = `${req.protocol}://${req.get('host')}`;
         // Create new mentor instance
         mentor = new Mentor({
@@ -46,7 +48,8 @@ const baseUrl = `${req.protocol}://${req.get('host')}`;
             expertise,
             idProof: `${baseUrl}/${req.files.idProof[0].path}`,
             profilePic: req.files.profilePic ? `${baseUrl}/${req.files.profilePic[0].path}` : undefined,
-            availabilitySlots: parsedSlots
+            availabilitySlots: parsedSlots,
+            fees: numericFees
         });
 
         // Encrypt password

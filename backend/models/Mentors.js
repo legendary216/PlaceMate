@@ -43,6 +43,12 @@ const mentorSchema = new mongoose.Schema({
         endTime: { type: String, required: true }    // e.g., "16:00"
     }],
 
+    fees: {
+        type: Number,
+        min: [0, 'Fees cannot be negative'], // Optional validation
+        default: 0 // Default to 0 or leave undefined if required
+    },
+
     profilePic: {
         type: String,
         default: 'no-photo.jpg'

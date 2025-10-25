@@ -2,6 +2,7 @@ import React, { useState, useRef } from "react";
 // Added Plus and Trash2 for the new UI
 import { Camera, CloudUpload, Check, FileText, Loader2, Plus, Trash2 } from 'lucide-react';
 import { useRouter } from "expo-router"; 
+import { /*...,*/ DollarSign } from 'lucide-react';
 
 // --- Helper constants for the new Step 3 ---
 const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -29,6 +30,7 @@ export default function App() {
   const [experience, setExperience] = useState("");
   const [qualification, setQualification] = useState("");
   const [expertise, setExpertise] = useState("");
+  const [fees, setFees] = useState("");
   
   // --- UPDATED STATE ---
   // Removed availability and hours, added availabilitySlots
@@ -131,6 +133,7 @@ export default function App() {
     formData.append('experience', experience);
     formData.append('qualification', qualification);
     formData.append('expertise', expertise);
+    formData.append('fees', fees);
     
     // Updated: Send the slots array as a JSON string
     formData.append('availabilitySlots', JSON.stringify(availabilitySlots));
@@ -204,46 +207,43 @@ export default function App() {
         return (
             <div>
                 <h1 className="title">Mentorship Preferences</h1>
-                <p className="subtitle">Set your weekly availability.</p>
-                
-                {/* Expertise is still here */}
-                <input 
-                  className="input-field" 
-                  placeholder="Areas of Expertise (e.g., React, UI/UX)" 
-                  value={expertise} 
-                  onChange={(e) => setExpertise(e.target.value)} 
+                <p className="subtitle">Set your expertise, availability, and fees.</p>
+
+                <input
+                  className="input-field"
+                  placeholder="Areas of Expertise (e.g., React, UI/UX)"
+                  value={expertise}
+                  onChange={(e) => setExpertise(e.target.value)}
                 />
 
-                {/* New Slot Picker UI */}
+                {/* --- ADD FEES INPUT --- */}
+                <div className="input-with-icon">
+                    <DollarSign size={18} className="input-icon"/>
+                    <input
+                      type="number"
+                      className="input-field"
+                      placeholder="Session Fee (e.g., 500)" // Adjust placeholder as needed
+                      value={fees}
+                      onChange={(e) => setFees(e.target.value)}
+                      min="0" // Prevent negative numbers
+                    />
+                 </div>
+                 <p className="hint-text fee-hint">Enter your fee per session/hour (optional, leave 0 if free).</p>
+                {/* --- END FEES INPUT --- */}
+
+
+                {/* --- Availability Slot Picker (unchanged) --- */}
+                 <p className="subtitle" style={{ marginTop: '1.5rem', marginBottom: '0.5rem' }}>Set Your Weekly Availability</p>
                 <div className="slots-list">
                   {availabilitySlots.map((slot, index) => (
                     <div key={index} className="slot-card">
-                      <div className="slot-inputs">
-                        <select 
-                          value={slot.day} 
-                          onChange={(e) => updateSlot(index, 'day', e.target.value)}
-                          className="form-select"
-                        >
-                          {daysOfWeek.map(day => <option key={day} value={day}>{day}</option>)}
-                        </select>
-                        <select 
-                          value={slot.startTime} 
-                          onChange={(e) => updateSlot(index, 'startTime', e.target.value)}
-                          className="form-select"
-                        >
-                          {timeSlots.map(time => <option key={time} value={time}>{time}</option>)}
-                        </select>
-                        <select 
-                          value={slot.endTime} 
-                          onChange={(e) => updateSlot(index, 'endTime', e.target.value)}
-                          className="form-select"
-                        >
-                          {timeSlots.map(time => <option key={time} value={time}>{time}</option>)}
-                        </select>
-                      </div>
-                      <button onClick={() => removeSlot(index)} className="delete-btn" title="Remove slot">
-                        <Trash2 size={18} />
-                      </button>
+                       {/* ... selects for day, start, end ... */}
+                        <div className="slot-inputs">
+                          <select value={slot.day} onChange={(e) => updateSlot(index, 'day', e.target.value)} className="form-select"> {daysOfWeek.map(day => <option key={day} value={day}>{day}</option>)} </select>
+                          <select value={slot.startTime} onChange={(e) => updateSlot(index, 'startTime', e.target.value)} className="form-select"> {timeSlots.map(time => <option key={time} value={time}>{time}</option>)} </select>
+                          <select value={slot.endTime} onChange={(e) => updateSlot(index, 'endTime', e.target.value)} className="form-select"> {timeSlots.map(time => <option key={time} value={time}>{time}</option>)} </select>
+                        </div>
+                        <button type="button" onClick={() => removeSlot(index)} className="delete-btn" title="Remove slot"> <Trash2 size={18} /> </button>
                     </div>
                   ))}
                   <button type="button" onClick={addSlot} className="add-btn">
@@ -354,7 +354,7 @@ export default function App() {
         .terms-text { font-size: 0.875rem; color: #4b5563; }
 
         /* --- NEW STYLES FOR STEP 3 --- */
-        .slots-list { display: flex; flex-direction: column; gap: 1rem; margin-top: 1.5rem; }
+        .slots-list { display: flex; flex-direction: column; gap: 1rem; margin-top: 0; }
         .slot-card { display: flex; align-items: center; gap: 0.5rem; background-color: #fff; border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 1rem; }
         .slot-inputs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; flex-grow: 1; }
         .form-select {
@@ -383,6 +383,26 @@ export default function App() {
         .modal-subtitle { color: #4b5563; margin-bottom: 1.5rem; }
         .modal-button { width: 100%; background-color: #4f46e5; color: #fff; padding: 0.75rem; border-radius: 0.5rem; font-weight: 700; font-size: 1rem; border: none; cursor: pointer; transition: background-color 150ms ease-in-out; }
         .modal-button:hover { background-color: #4338ca; }
+        .input-with-icon { 
+            position: relative; 
+            margin-bottom: 0.25rem; /* Reduced margin */
+        }
+            .input-icon { 
+            position: absolute; 
+            left: 0.875rem; /* Adjust as needed */
+            top: 50%; 
+            transform: translateY(-50%); 
+            color: #9ca3af; 
+        }
+        .input-with-icon .input-field { 
+            padding-left: 2.5rem; /* Make space for icon */
+        }
+            .fee-hint {
+            margin-top: -0.5rem; /* Pull hint closer to input */
+            margin-bottom: 1.5rem;
+            text-align: left; /* Align hint left */
+            padding-left: 0.25rem;
+        }
       `}</style>
 
       {/* --- FORM JSX (Unchanged) --- */}

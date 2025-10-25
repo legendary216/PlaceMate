@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Loader2, Calendar, Clock, Check, Send } from 'lucide-react'; // Changed CheckCircle to Send for request
 import { useRouter, useLocalSearchParams } from 'expo-router';
+
 import dayjs from 'dayjs';
 
 export default function BookSession() {
@@ -134,7 +135,7 @@ export default function BookSession() {
       <style>{`
         /* --- Styles (mostly unchanged, check modal styles) --- */
         body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafe; }
-        .page-container { display: flex; flex-direction: column; min-height: 100vh; }
+        .page-container { display: flex; flex-direction: column; min-height: 100vh; overflow-y: auto; }
         .header-container { display: flex; align-items: center; padding: 1.25rem 1.5rem; background-color: #fff; border-bottom: 1px solid #e5e7eb; }
         .back-button { padding: 0.5rem; background-color: #eef2ff; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-right: 1rem; }
         .header-title { font-size: 1.75rem; font-weight: 700; color: #111827; }

@@ -27,12 +27,12 @@ const generatePotentialSlots = (availabilitySlots, startDate, numDays) => {
       const endTime = currentDay.hour(endHour).minute(endMinute).second(0).millisecond(0);
 
       // Generate 30-minute slots within the template range
-      while (slotTime.add(30, 'minute').isBefore(endTime) || slotTime.add(30, 'minute').isSame(endTime)) {
+      while (slotTime.add(60, 'minute').isBefore(endTime) || slotTime.add(60, 'minute').isSame(endTime)) {
         potentialSlots.push({
           startTime: slotTime.toDate(), // Store as Date object
-          endTime: slotTime.add(30, 'minute').toDate()
+          endTime: slotTime.add(60, 'minute').toDate()
         });
-        slotTime = slotTime.add(30, 'minute');
+        slotTime = slotTime.add(60, 'minute');
       }
     });
   }

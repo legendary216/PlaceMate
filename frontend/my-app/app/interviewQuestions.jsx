@@ -183,7 +183,7 @@ export default function InterviewPage() {
     <>
       <style>{`
         body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafe; }
-        .page-container { display: flex; flex-direction: column; min-height: 100vh; padding-bottom: 80px; box-sizing: border-box; }
+        .page-container { display: flex; flex-direction: column; min-height: 100vh; padding-bottom: 80px; box-sizing: border-box; overflow-y: auto;}
         .header-container { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; background-color: #fff; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
         .header-left { display: flex; align-items: center; }
         .back-button { padding: 0.5rem; background-color: #eef2ff; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; text-decoration: none; margin-right: 1rem; }
