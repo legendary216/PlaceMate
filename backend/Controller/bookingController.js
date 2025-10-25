@@ -3,7 +3,7 @@ import Mentor from '../models/Mentors.js'; // Assuming this is your Mentor model
 import dayjs from 'dayjs'; // You'll need to install dayjs: npm install dayjs
 import utc from 'dayjs/plugin/utc.js'; // For handling timezones reliably
 import timezone from 'dayjs/plugin/timezone.js'; // For handling timezones reliably
-import { sendBookingConfirmationEmail, sendBookingRequestEmail } from '../utils/emails.js'; // Assuming you have/will create sendBookingRequestEmail
+import { sendBookingConfirmationEmail, sendBookingRequestEmail ,sendCancellationEmail} from '../utils/emails.js'; // Assuming you have/will create sendBookingRequestEmail
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -354,8 +354,17 @@ export const cancelBookingByStudent = async (req, res) => {
             return res.status(400).json({ message: `Cannot cancel a booking with status: ${booking.status}` });
         }
 
+        const bookingDetails = await Booking.findById(booking._id)
+                                             .populate('student', 'name email')
+                                             .populate('mentor', 'fullName email');
+
         booking.status = 'cancelled_by_student';
         await booking.save();
+
+        // --- Send notification AFTER saving ---
+        if (bookingDetails) {
+            sendCancellationEmail(bookingDetails, 'student'); // Notify mentor
+        }
 
         // Optional: Notify mentor about the cancellation
         // const bookingDetails = await Booking.findById(booking._id).populate(...);
@@ -399,12 +408,21 @@ export const cancelBookingByMentor = async (req, res) => {
              return res.status(400).json({ message: `Cannot cancel a booking with status: ${booking.status}` });
         }
 
+        // Fetch details *before* saving
+        const bookingDetails = await Booking.findById(booking._id)
+                                             .populate('student', 'name email')
+                                             .populate('mentor', 'fullName email');
+        // ---
         booking.status = 'cancelled_by_mentor';
         await booking.save();
 
         // Optional: Notify student about the cancellation
         // const bookingDetails = await Booking.findById(booking._id).populate(...);
         // sendCancellationEmail(bookingDetails, 'mentor');
+
+        if (bookingDetails) {
+            sendCancellationEmail(bookingDetails, 'mentor'); 
+        }
 
         res.status(200).json({ message: 'Booking cancelled successfully.' });
 

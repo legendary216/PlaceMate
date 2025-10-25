@@ -141,3 +141,64 @@ export const sendBookingRequestEmail = async (requestDetails) => {
     console.error('Error sending booking request email:', error);
   }
 };
+
+
+/**
+ * Sends notification email when a booking is cancelled.
+ * @param {object} bookingDetails - Populated booking object with student and mentor details.
+ * @param {string} cancelledBy - Indicates who cancelled ('student' or 'mentor').
+ */
+export const sendCancellationEmail = async (bookingDetails, cancelledBy) => {
+  if (!bookingDetails || !bookingDetails.student || !bookingDetails.mentor) {
+    console.error("sendCancellationEmail: Invalid bookingDetails received.");
+    return;
+  }
+  const { student, mentor, startTime, endTime } = bookingDetails;
+
+  const formattedStartTime = dayjs(startTime).format('dddd, MMMM D, YYYY [at] h:mm A');
+  const formattedEndTime = dayjs(endTime).format('h:mm A');
+
+  let recipientEmail;
+  let recipientName;
+  let subject;
+  let textBody;
+  let htmlBody;
+
+  // Determine recipient and tailor the message
+  if (cancelledBy === 'student') {
+    recipientEmail = mentor.email;
+    recipientName = mentor.fullName;
+    subject = 'Mentorship Session Cancelled by Student';
+    textBody = `Hi ${recipientName},\n\n${student.name} (${student.email}) has cancelled the mentorship session scheduled for:\n${formattedStartTime} - ${formattedEndTime}\n\nThis time slot may now be available for other bookings.\n\nBest regards,\nThe PlaceMate Team`;
+    htmlBody = `<p>Hi ${recipientName},</p><p><strong>${student.name}</strong> (${student.email}) has cancelled the mentorship session scheduled for:</p><p>${formattedStartTime} - ${formattedEndTime}</p><p>This time slot may now be available for other bookings.</p><p>Best regards,<br>The PlaceMate Team</p>`;
+  } else if (cancelledBy === 'mentor') {
+    recipientEmail = student.email;
+    recipientName = student.name;
+    subject = 'Mentorship Session Cancelled by Mentor';
+    textBody = `Hi ${recipientName},\n\n${mentor.fullName} has cancelled the mentorship session scheduled for:\n${formattedStartTime} - ${formattedEndTime}\n\nWe apologize for any inconvenience. Please feel free to browse and book with other mentors.\n\nBest regards,\nThe PlaceMate Team`;
+    htmlBody = `<p>Hi ${recipientName},</p><p><strong>${mentor.fullName}</strong> has cancelled the mentorship session scheduled for:</p><p>${formattedStartTime} - ${formattedEndTime}</p><p>We apologize for any inconvenience. Please feel free to browse and book with other mentors.</p><p>Best regards,<br>The PlaceMate Team</p>`;
+  } else {
+    console.error("sendCancellationEmail: Invalid 'cancelledBy' value.");
+    return; // Don't send if role is unclear
+  }
+
+  // Construct the email options
+  const mailOptions = {
+    from: `"PlaceMate" <${process.env.EMAIL_FROM || 'noreply@placemate.com'}>`,
+    to: recipientEmail,
+    subject: subject,
+    text: textBody,
+    html: htmlBody,
+  };
+
+  try {
+    console.log(`Sending cancellation notification to: ${recipientEmail}`);
+    let info = await transporter.sendMail(mailOptions);
+    console.log('Cancellation email sent successfully.');
+    if (process.env.EMAIL_HOST === 'smtp.ethereal.email') {
+      console.log("Ethereal Cancellation Email Preview URL: %s", nodemailer.getTestMessageUrl(info));
+    }
+  } catch (error) {
+    console.error('Error sending cancellation email:', error);
+  }
+};
