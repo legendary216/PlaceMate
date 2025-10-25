@@ -102,7 +102,7 @@ export default function MentorConnectBrowse() {
       <style>{`
         /* --- Styles --- */
         body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafe; }
-        .page-container { display: flex; flex-direction: column; min-height: 100vh; }
+        .page-container { display: flex; flex-direction: column; min-height: 100vh;overflow-y: auto; }
         
         /* --- UPDATED HEADER STYLE --- */
         .header-container { 

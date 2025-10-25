@@ -4,7 +4,10 @@ import {
   getAvailableSlots,
   createBooking,
   getMySchedule,
-  getMyStudentSchedule
+  getMyStudentSchedule,
+  getPendingBookingRequests, // <-- Import
+  confirmBookingRequest,    // <-- Import
+  rejectBookingRequest
 } from '../Controller/bookingController.js';
 
 // Import auth middleware
@@ -21,5 +24,9 @@ router.post('/', protect, authorize('user'), createBooking);
 router.get('/my-schedule', protect, authorize('mentor'), getMySchedule);
 
 router.get('/my-schedule-student', protect, authorize('user'), getMyStudentSchedule);
+
+router.get('/my-pending-requests', protect, authorize('mentor'), getPendingBookingRequests); // <-- New: Get pending booking requests
+router.patch('/confirm/:bookingId', protect, authorize('mentor'), confirmBookingRequest);   // <-- New: Confirm a request
+router.patch('/reject/:bookingId', protect, authorize('mentor'), rejectBookingRequest);
 
 export default router;

@@ -11,7 +11,6 @@ const bookingSchema = new mongoose.Schema({
     ref: 'Mentor',
     required: true,
   },
-  // Store the specific date and time for the session
   startTime: {
     type: Date,
     required: true,
@@ -20,17 +19,36 @@ const bookingSchema = new mongoose.Schema({
     type: Date,
     required: true,
   },
-  // Optional: Add status for cancellations later
+  // --- NEW STATUS FIELD ---
   status: {
     type: String,
-    enum: ['confirmed', 'cancelled_student', 'cancelled_mentor'],
-    default: 'confirmed',
+    enum: [
+      'pending_mentor_approval', // Initial state after student requests
+      'confirmed',              // After mentor accepts and adds link
+      'rejected_by_mentor',     // If mentor rejects the request
+      'cancelled_by_student',   // If student cancels (optional)
+      'cancelled_by_mentor',    // If mentor cancels after confirming (optional)
+      'completed'               // After the session time passes (optional)
+    ],
+    default: 'pending_mentor_approval', // Default for new requests
+  },
+  // --- NEW MEETING LINK FIELD ---
+  meetingLink: {
+    type: String, // To store the Google Meet / Zoom link etc.
+    trim: true,
   }
 }, {
-  timestamps: true
+  timestamps: true // Adds createdAt and updatedAt
 });
 
 // Index to quickly find bookings for a mentor at a specific time
 bookingSchema.index({ mentor: 1, startTime: 1 });
+
+// Optional: Prevent duplicate PENDING requests for the same slot
+bookingSchema.index({ mentor: 1, startTime: 1, status: 1 }, {
+  unique: true,
+  partialFilterExpression: { status: 'pending_mentor_approval' }
+});
+
 
 export default mongoose.model('Booking', bookingSchema);
