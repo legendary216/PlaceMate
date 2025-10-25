@@ -321,3 +321,98 @@ export const getMyStudentSchedule = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
+
+// --- NEW: Cancel Booking by Student ---
+// @desc    Student cancels their upcoming booking
+// @route   PATCH /api/bookings/cancel/student/:bookingId
+// @access  Private (User only)
+export const cancelBookingByStudent = async (req, res) => {
+    try {
+        const studentId = req.user.id;
+        const { bookingId } = req.params;
+
+        const booking = await Booking.findById(bookingId);
+
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found.' });
+        }
+
+        // Verify student owns this booking
+        if (booking.student.toString() !== studentId) {
+            return res.status(403).json({ message: 'Not authorized to cancel this booking.' });
+        }
+
+        // Optional: Add rules like "cannot cancel within 24 hours"
+        // const now = dayjs();
+        // if (dayjs(booking.startTime).diff(now, 'hour') < 24) {
+        //     return res.status(400).json({ message: 'Cannot cancel booking less than 24 hours in advance.' });
+        // }
+
+        // Check if already cancelled or completed
+        if (!['pending_mentor_approval', 'confirmed'].includes(booking.status)) {
+            return res.status(400).json({ message: `Cannot cancel a booking with status: ${booking.status}` });
+        }
+
+        booking.status = 'cancelled_by_student';
+        await booking.save();
+
+        // Optional: Notify mentor about the cancellation
+        // const bookingDetails = await Booking.findById(booking._id).populate(...);
+        // sendCancellationEmail(bookingDetails, 'student');
+
+        res.status(200).json({ message: 'Booking cancelled successfully.' });
+
+    } catch (error) {
+        console.error('Error cancelling booking by student:', error);
+        if (error.kind === 'ObjectId') {
+             return res.status(404).json({ message: 'Booking not found.' });
+         }
+        res.status(500).json({ message: 'Server Error' });
+    }
+};
+
+// --- NEW: Cancel Booking by Mentor ---
+// @desc    Mentor cancels an upcoming booking
+// @route   PATCH /api/bookings/cancel/mentor/:bookingId
+// @access  Private (Mentor only)
+export const cancelBookingByMentor = async (req, res) => {
+    try {
+        const mentorId = req.user.id;
+        const { bookingId } = req.params;
+
+        const booking = await Booking.findById(bookingId);
+
+        if (!booking) {
+            return res.status(404).json({ message: 'Booking not found.' });
+        }
+
+        // Verify mentor owns this booking
+        if (booking.mentor.toString() !== mentorId) {
+            return res.status(403).json({ message: 'Not authorized to cancel this booking.' });
+        }
+
+        // Optional: Add rules (e.g., cannot cancel within X hours)
+
+        // Check if already cancelled or completed
+        if (booking.status !== 'confirmed') { // Mentors usually cancel confirmed bookings
+             return res.status(400).json({ message: `Cannot cancel a booking with status: ${booking.status}` });
+        }
+
+        booking.status = 'cancelled_by_mentor';
+        await booking.save();
+
+        // Optional: Notify student about the cancellation
+        // const bookingDetails = await Booking.findById(booking._id).populate(...);
+        // sendCancellationEmail(bookingDetails, 'mentor');
+
+        res.status(200).json({ message: 'Booking cancelled successfully.' });
+
+    } catch (error) {
+        console.error('Error cancelling booking by mentor:', error);
+         if (error.kind === 'ObjectId') {
+             return res.status(404).json({ message: 'Booking not found.' });
+         }
+        res.status(500).json({ message: 'Server Error' });
+    }
+};

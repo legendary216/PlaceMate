@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { LogOut, Loader2, Check, X, Users, RefreshCw, Calendar, Clock, Link2 } from 'lucide-react'; // Added Link2
+import { LogOut, Loader2, Check, X, Users, RefreshCw, Calendar, Clock, Link2 ,XCircle} from 'lucide-react'; // Added Link2
 import { useRouter } from "expo-router";
 import dayjs from 'dayjs';
 
@@ -22,6 +22,7 @@ export default function MentorHome() {
   const [currentBookingToAccept, setCurrentBookingToAccept] = useState(null); // Stores { _id, studentName, time }
   const [meetingLink, setMeetingLink] = useState('');
   const [isConfirmingBooking, setIsConfirmingBooking] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(null);
   // ---
 
   const [user, setUser] = useState(null);
@@ -163,6 +164,27 @@ export default function MentorHome() {
     window.location.href = "/";
   };
 
+
+
+  const handleCancelByMentor = async (bookingId) => {
+       if (!window.confirm("Are you sure you want to cancel this scheduled session?")) return;
+       setCancelLoading(bookingId); // Show spinner on cancel button
+       const token = localStorage.getItem("token");
+       try {
+           const res = await fetch(`http://localhost:5000/api/bookings/cancel/mentor/${bookingId}`, {
+               method: "PATCH",
+               headers: { "Authorization": `Bearer ${token}` }
+           });
+           if (!res.ok) throw new Error("Failed to cancel booking.");
+           alert("Booking cancelled successfully.");
+           fetchSchedule(); // Refresh the schedule list
+       } catch (err) {
+           alert(err.message);
+       } finally {
+           setCancelLoading(null); // Clear spinner
+       }
+   };
+
   // --- Rendering Functions (requests, schedule) ---
   const renderRequests = () => { /* ... unchanged ... */
       if (isLoadingRequests) { return <p className="info-text"><Loader2 size={24} className="spinner" /> Loading requests...</p>; }
@@ -174,7 +196,19 @@ export default function MentorHome() {
       if (isLoadingSchedule) { return <p className="info-text"><Loader2 size={24} className="spinner" /> Loading schedule...</p>; }
       if (fetchScheduleError) { return <p className="error-text">{fetchScheduleError}</p>; }
       if (schedule.length === 0) { return (<div className="info-text empty-state"><Calendar size={40} color="#6b7280" /><h3 className="empty-title">No Upcoming Sessions</h3><p className="empty-subtitle">Your schedule is clear for now.</p></div>); }
-      return (<div className="item-list">{schedule.map(booking => (<div key={booking._id} className="list-item schedule-item"><div className="item-info"><p className="item-name">{booking.student.name}</p><p className="item-email">{dayjs(booking.startTime).format('ddd, MMM D, YYYY')}</p><p className="item-time"><Clock size={14} style={{verticalAlign: 'middle', marginRight: '4px'}}/>{dayjs(booking.startTime).format('h:mm A')} - {dayjs(booking.endTime).format('h:mm A')}</p></div></div>))}</div>);
+      return (<div className="item-list">{schedule.map(booking => (<div key={booking._id} className="list-item schedule-item"><div className="item-info"><p className="item-name">{booking.student.name}</p><p className="item-email">{dayjs(booking.startTime).format('ddd, MMM D, YYYY')}</p><p className="item-time"><Clock size={14} style={{verticalAlign: 'middle', marginRight: '4px'}}/>{dayjs(booking.startTime).format('h:mm A')} - {dayjs(booking.endTime).format('h:mm A')}</p></div>{/* --- ADD CANCEL BUTTON --- */}
+                    <div className="item-actions">
+                         <button
+                            className="button-cancel-schedule"
+                            onClick={() => handleCancelByMentor(booking._id)}
+                            disabled={cancelLoading === booking._id}
+                            title="Cancel Session"
+                         >
+                            {cancelLoading === booking._id ? <Loader2 size={18} className="spinner"/> : <XCircle size={18} />}
+                         </button>
+                    </div>
+                    {/* --- END CANCEL BUTTON --- */}
+                    </div>))}</div>);
   };
 
   // --- NEW: Render Pending Booking Requests ---
@@ -282,6 +316,17 @@ export default function MentorHome() {
         .button-cancel { background-color: #f3f4f6; border: 1px solid #d1d5db; color: #1f2937; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer;}
         .button-confirm { background-color: #4f46e5; color: #fff; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 0.5rem;}
         .button-confirm:disabled { background-color: #a5b4fc; cursor: not-allowed; }
+        .button-cancel-schedule {
+            display: flex; align-items: center; justify-content: center;
+            background-color: #fee2e2; color: #991b1b; border: none;
+             width: 36px; height: 36px; /* Slightly smaller */ border-radius: 50%; cursor: pointer;
+            transition: background-color 0.2s;
+        }
+         .button-cancel-schedule:hover { background-color: #fecaca; }
+         .button-cancel-schedule:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        /* Ensure item-actions in schedule has space */
+         .schedule-item .item-actions { margin-left: auto; /* Push cancel button right */ }
       `}</style>
 
       <div className="page-container">

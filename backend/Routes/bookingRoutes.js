@@ -7,7 +7,9 @@ import {
   getMyStudentSchedule,
   getPendingBookingRequests, // <-- Import
   confirmBookingRequest,    // <-- Import
-  rejectBookingRequest
+  rejectBookingRequest,
+  cancelBookingByStudent, // <-- Import
+  cancelBookingByMentor
 } from '../Controller/bookingController.js';
 
 // Import auth middleware
@@ -28,5 +30,11 @@ router.get('/my-schedule-student', protect, authorize('user'), getMyStudentSched
 router.get('/my-pending-requests', protect, authorize('mentor'), getPendingBookingRequests); // <-- New: Get pending booking requests
 router.patch('/confirm/:bookingId', protect, authorize('mentor'), confirmBookingRequest);   // <-- New: Confirm a request
 router.patch('/reject/:bookingId', protect, authorize('mentor'), rejectBookingRequest);
+
+// Student cancels a booking
+router.patch('/cancel/student/:bookingId', protect, authorize('user'), cancelBookingByStudent);
+
+// Mentor cancels a booking
+router.patch('/cancel/mentor/:bookingId', protect, authorize('mentor'), cancelBookingByMentor);
 
 export default router;
