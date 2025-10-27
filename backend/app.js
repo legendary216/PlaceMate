@@ -13,6 +13,7 @@ import bookingRoutes from './Routes/bookingRoutes.js';
 import companyRoutes from './Routes/companyRoutes.js';
 import resumeRoutes from './Routes/resumeRotues.js';
 
+import './config/cloudinaryConfig.js';
 import path, { dirname } from 'path';
 import { fileURLToPath } from 'url';
 import cors from "cors";
