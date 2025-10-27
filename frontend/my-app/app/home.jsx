@@ -25,10 +25,6 @@ export default function Home() {
     { id: 4, title: "AI Resume", Icon: FileText, nav: "/resume" },       // Assuming you have these pages
   ];
 
-  // Dynamically add student-only feature
-  if (user && user.role === 'user') {
-      features.push({ id: 5, title: "My Bookings", Icon: Calendar, nav: "/my-bookings" });
-  }
 
   // Handle conditional navigation for admins
   features = features.map(feature => {
@@ -74,7 +70,7 @@ export default function Home() {
       <style>{`
         /* ... (styles remain the same) ... */
         body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafe; }
-        .container { display: flex; flex-direction: column; min-height: 100vh; }
+        .container { display: flex; flex-direction: column; min-height: 100vh; overflow-y: auto; }
         .header-container { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; background-color: #fff; border-bottom: 1px solid #e5e7eb; }
         .header-title { font-size: 1.75rem; font-weight: 700; color: #111827; }
         .logout-button { padding: 0.5rem; background-color: #eef2ff; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
