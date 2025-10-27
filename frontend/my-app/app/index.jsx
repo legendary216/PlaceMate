@@ -38,7 +38,7 @@ export default function Login() {
 
       if (!validateInputs()) return;
 
-      const res = await fetch("http://localhost:5000/api/auth/login/handlelogin", {
+      const res = await fetch("https://placemate-ru7v.onrender.com/api/auth/login/handlelogin", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, role }),

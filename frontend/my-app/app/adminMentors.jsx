@@ -46,7 +46,7 @@ useEffect(() => {
     setFetchError(null);
     const token = localStorage.getItem('token');
     try {
-      const response = await fetch("http://localhost:5000/api/admin/mentors/pending", {
+      const response = await fetch("https://placemate-ru7v.onrender.com/api/admin/mentors/pending", {
         headers: { "Authorization": `Bearer ${token}` }
       });
       
@@ -70,7 +70,7 @@ useEffect(() => {
     const token = localStorage.getItem('token');
     
     // This URL matches the backend routes we just defined
-    const url = `http://localhost:5000/api/admin/mentors/${action}/${mentorId}`;
+    const url = `https://placemate-ru7v.onrender.com/api/admin/mentors/${action}/${mentorId}`;
     
     try {
       const res = await fetch(url, {

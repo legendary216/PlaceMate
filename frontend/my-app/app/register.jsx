@@ -53,7 +53,7 @@ export default function Register() {
       if (!validateInputs()) return;
 
       const res = await fetch(
-        "http://localhost:5000/api/auth/register/registerUser",
+        "https://placemate-ru7v.onrender.com/api/auth/register/registerUser",
         {
           method: "POST",
           headers: {

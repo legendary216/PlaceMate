@@ -44,7 +44,7 @@ export default function InterviewPage() {
     try {
       // NOTE: This relies on your local backend server (localhost:5000) for question CRUD.
       // Your backend must return the questions already sorted by date (e.g., newest first).
-      const response = await fetch(`http://localhost:5000/api/questions/${category}`);
+      const response = await fetch(`https://placemate-ru7v.onrender.com/api/questions/${category}`);
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
       setQuestions(data);

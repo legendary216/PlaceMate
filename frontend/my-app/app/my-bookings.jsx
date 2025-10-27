@@ -21,7 +21,7 @@ export default function MyBookings() {
         setFetchError(null);
         const token = localStorage.getItem("token");
         try {
-          const res = await fetch("http://localhost:5000/api/bookings/my-schedule-student", {
+          const res = await fetch("https://placemate-ru7v.onrender.com/api/bookings/my-schedule-student", {
             headers: { "Authorization": `Bearer ${token}` }
           });
           if (!res.ok) {
@@ -47,7 +47,7 @@ export default function MyBookings() {
        setCancelLoading(bookingId);
        const token = localStorage.getItem("token");
        try {
-           const res = await fetch(`http://localhost:5000/api/bookings/cancel/student/${bookingId}`, {
+           const res = await fetch(`https://placemate-ru7v.onrender.com/api/bookings/cancel/student/${bookingId}`, {
                method: "PATCH",
                headers: { "Authorization": `Bearer ${token}` }
            });

@@ -73,13 +73,13 @@ export default function CompanyAnalysis() {
         setError(null);
         let statsError = null, companiesError = null;
         try {
-            const statsRes = await fetch(`http://localhost:5000/api/placements/stats/${year}`);
+            const statsRes = await fetch(`https://placemate-ru7v.onrender.com/api/placements/stats/${year}`);
             if (!statsRes.ok) throw new Error(`Stats Error (${statsRes.status})`);
             setPlacementStats(await statsRes.json());
         } catch (err) { console.error("Stats fetch error:", err); statsError = "Could not load statistics."; setPlacementStats([]); }
         finally { setIsLoadingStats(false); }
         try {
-            const companiesRes = await fetch(`http://localhost:5000/api/companies/visited/${year}`);
+            const companiesRes = await fetch(`https://placemate-ru7v.onrender.com/api/companies/visited/${year}`);
             if (!companiesRes.ok) throw new Error(`Companies Error (${companiesRes.status})`);
             setCompaniesList(await companiesRes.json());
         } catch (err) { console.error("Companies fetch error:", err); companiesError = "Could not load company list."; setCompaniesList([]); }
@@ -118,7 +118,7 @@ export default function CompanyAnalysis() {
         if (!window.confirm(`Are you sure you want to delete "${companyName}" and all its placement records? This cannot be undone.`)) return;
         const token = localStorage.getItem('token');
         try {
-            const res = await fetch(`http://localhost:5000/api/companies/${companyId}`, {
+            const res = await fetch(`https://placemate-ru7v.onrender.com/api/companies/${companyId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -142,7 +142,7 @@ export default function CompanyAnalysis() {
         const rolesArray = newCompanyRoles.split(',').map(role => role.trim()).filter(role => role);
 
         try {
-            const res = await fetch(`http://localhost:5000${url}`, {
+            const res = await fetch(`https://placemate-ru7v.onrender.com${url}`, {
                 method: method,
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ name: newCompanyName, description: newCompanyDesc, website: newCompanyWebsite, rolesOffered: rolesArray, location: newCompanyLocation })
@@ -160,7 +160,7 @@ export default function CompanyAnalysis() {
          setModalLoading(true); setModalError('');
         const token = localStorage.getItem('token');
         try {
-             const res = await fetch(`http://localhost:5000/api/placements`, {
+             const res = await fetch(`https://placemate-ru7v.onrender.com/api/placements`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify({ studentEmail: newPlacementEmail, companyName: newPlacementCompany, year: newPlacementYear, packageLPA: newPlacementPackage || undefined })

@@ -27,7 +27,7 @@ export default function BookSession() {
           const token = localStorage.getItem("token");
 
           try {
-            const res = await fetch(`http://localhost:5000/api/bookings/available/${mentorId}`, {
+            const res = await fetch(`https://placemate-ru7v.onrender.com/api/bookings/available/${mentorId}`, {
               headers: { "Authorization": `Bearer ${token}` }
             });
             if (!res.ok) {
@@ -75,7 +75,7 @@ export default function BookSession() {
     const token = localStorage.getItem("token");
 
     try {
-      const res = await fetch(`http://localhost:5000/api/bookings`, { // Calls the same createBooking endpoint
+      const res = await fetch(`https://placemate-ru7v.onrender.com/api/bookings`, { // Calls the same createBooking endpoint
         method: "POST",
         headers: {
           "Content-Type": "application/json",

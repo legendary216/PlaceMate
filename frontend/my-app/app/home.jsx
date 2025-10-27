@@ -43,7 +43,7 @@ export default function Home() {
 
   const handleLogout = async () => { /* ... (no changes) ... */
     try {
-      const res = await fetch("http://localhost:5000/api/auth/login/logoutUser", {
+      const res = await fetch("https://placemate-ru7v.onrender.com/api/auth/login/logoutUser", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
       });

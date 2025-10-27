@@ -31,7 +31,7 @@ export default function MentorConnectBrowse() {
         setIsLoading(true);
         setFetchError(null);
         try {
-          const response = await fetch("http://localhost:5000/api/mentors/approved");
+          const response = await fetch("https://placemate-ru7v.onrender.com/api/mentors/approved");
           if (!response.ok) throw new Error('Network response was not ok');
           const data = await response.json();
           setMentors(data);

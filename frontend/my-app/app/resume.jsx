@@ -54,7 +54,7 @@ export default function ResumeAnalyzer() {
         formData.append('resumeFile', selectedFile);
 
         try {
-            const res = await fetch("http://localhost:5000/api/resume/analyze", {
+            const res = await fetch("https://placemate-ru7v.onrender.com/api/resume/analyze", {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${token}` },
                 body: formData

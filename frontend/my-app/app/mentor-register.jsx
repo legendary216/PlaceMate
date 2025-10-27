@@ -145,7 +145,7 @@ for (let [key, value] of formData.entries()) {
     console.log(key, value); // Check if files are listed correctly here
 }
     try {
-      const res = await fetch("http://localhost:5000/api/auth/register/registerMentor", {
+      const res = await fetch("https://placemate-ru7v.onrender.com/api/auth/register/registerMentor", {
         method: "POST",
         body: formData,
       });

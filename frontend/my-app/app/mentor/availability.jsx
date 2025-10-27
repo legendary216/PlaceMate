@@ -24,7 +24,7 @@ export default function SetAvailability() {
       setIsLoading(true);
       const token = localStorage.getItem("token");
       try {
-        const res = await fetch("http://localhost:5000/api/mentors/my-availability", {
+        const res = await fetch("https://placemate-ru7v.onrender.com/api/mentors/my-availability", {
           headers: { "Authorization": `Bearer ${token}` }
         });
         if (!res.ok) throw new Error("Could not load availability.");
@@ -60,7 +60,7 @@ export default function SetAvailability() {
     setError(null);
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch("http://localhost:5000/api/mentors/my-availability", {
+      const res = await fetch("https://placemate-ru7v.onrender.com/api/mentors/my-availability", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",

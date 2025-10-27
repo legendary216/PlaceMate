@@ -50,7 +50,7 @@ export default function MentorHome() {
     setFetchRequestsError(null);
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch("http://localhost:5000/api/connections/my-requests", { headers: { "Authorization": `Bearer ${token}` } });
+      const res = await fetch("https://placemate-ru7v.onrender.com/api/connections/my-requests", { headers: { "Authorization": `Bearer ${token}` } });
       if (!res.ok) throw new Error("Could not fetch connection requests.");
       const data = await res.json();
       setRequests(data);
@@ -63,7 +63,7 @@ export default function MentorHome() {
     setFetchScheduleError(null);
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch("http://localhost:5000/api/bookings/my-schedule", { headers: { "Authorization": `Bearer ${token}` } });
+      const res = await fetch("https://placemate-ru7v.onrender.com/api/bookings/my-schedule", { headers: { "Authorization": `Bearer ${token}` } });
       if (!res.ok) throw new Error("Could not fetch schedule.");
       const data = await res.json();
       setSchedule(data);
@@ -76,7 +76,7 @@ export default function MentorHome() {
     setFetchPendingBookingsError(null);
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch("http://localhost:5000/api/bookings/my-pending-requests", { headers: { "Authorization": `Bearer ${token}` } });
+      const res = await fetch("https://placemate-ru7v.onrender.com/api/bookings/my-pending-requests", { headers: { "Authorization": `Bearer ${token}` } });
       if (!res.ok) throw new Error("Could not fetch pending booking requests.");
       const data = await res.json();
       setPendingBookings(data);
@@ -88,7 +88,7 @@ export default function MentorHome() {
     setActionLoading(requestId);
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`http://localhost:5000/api/connections/respond/${requestId}`, {
+      const res = await fetch(`https://placemate-ru7v.onrender.com/api/connections/respond/${requestId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ status: newStatus })
@@ -117,7 +117,7 @@ export default function MentorHome() {
     setIsConfirmingBooking(true);
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`http://localhost:5000/api/bookings/confirm/${currentBookingToAccept._id}`, {
+      const res = await fetch(`https://placemate-ru7v.onrender.com/api/bookings/confirm/${currentBookingToAccept._id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ meetingLink: meetingLink.trim() })
@@ -144,7 +144,7 @@ export default function MentorHome() {
        setActionLoading(bookingId); // Show spinner on the specific item's button
        const token = localStorage.getItem("token");
        try {
-           const res = await fetch(`http://localhost:5000/api/bookings/reject/${bookingId}`, {
+           const res = await fetch(`https://placemate-ru7v.onrender.com/api/bookings/reject/${bookingId}`, {
                method: "PATCH",
                headers: { "Authorization": `Bearer ${token}` }
            });
@@ -171,7 +171,7 @@ export default function MentorHome() {
        setCancelLoading(bookingId); // Show spinner on cancel button
        const token = localStorage.getItem("token");
        try {
-           const res = await fetch(`http://localhost:5000/api/bookings/cancel/mentor/${bookingId}`, {
+           const res = await fetch(`https://placemate-ru7v.onrender.com/api/bookings/cancel/mentor/${bookingId}`, {
                method: "PATCH",
                headers: { "Authorization": `Bearer ${token}` }
            });

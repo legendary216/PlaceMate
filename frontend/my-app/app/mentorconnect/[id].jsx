@@ -33,12 +33,12 @@ export default function MentorProfile() {
 
       try {
         // Fetch profile (Promise 1)
-        const profilePromise = fetch(`http://localhost:5000/api/mentors/${id}`);
+        const profilePromise = fetch(`https://placemate-ru7v.onrender.com/api/mentors/${id}`);
         
         // Fetch connection status (Promise 2) - only if logged in as user
         let statusPromise = Promise.resolve(null); // Default for non-users
         if (token && JSON.parse(storedUser)?.role === 'user') { 
-          statusPromise = fetch(`http://localhost:5000/api/connections/status/${id}`, {
+          statusPromise = fetch(`https://placemate-ru7v.onrender.com/api/connections/status/${id}`, {
             headers: { "Authorization": `Bearer ${token}` }
           });
         }
@@ -88,7 +88,7 @@ export default function MentorProfile() {
 
     setIsRequesting(true);
     try {
-      const res = await fetch("http://localhost:5000/api/connections/request", {
+      const res = await fetch("https://placemate-ru7v.onrender.com/api/connections/request", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
