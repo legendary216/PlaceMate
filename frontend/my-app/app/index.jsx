@@ -81,7 +81,7 @@ export default function Login() {
   
   // --- THIS FUNCTION IS NOW SIMPLIFIED ---
   // It only runs for approved logins (admin, user, approved mentor)
- const handleSuccessRedirect = () => {
+  const handleSuccessRedirect = () => {
       setShowSuccess(false);
       
       // Get the role the user *selected* on the login form
@@ -123,6 +123,16 @@ export default function Login() {
           width: 100%;
           max-width: 28rem;
         }
+        /* --- NEW CSS for Logo --- */
+        .logo-container {
+            text-align: center;
+            margin-bottom: 2rem; /* Add space below logo */
+        }
+        .logo-image {
+            max-width: 120px; /* Adjust size as needed */
+            height: auto;
+        }
+        /* --- END NEW CSS --- */
         .title {
           font-size: 2rem;
           font-weight: 700;
@@ -231,11 +241,22 @@ export default function Login() {
       `}</style>
       <div className="container">
         <form className="login-wrapper" onSubmit={handleLogin}>
+          
+          {/* 🌟 LOGO ADDED HERE 🌟 */}
+          <div className="logo-container">
+            <img 
+              src="https://res.cloudinary.com/dp1mmwwom/image/upload/v1761598183/placemate/profile_pics/j49x0sjyt1iz0opzlsbh.png" // ⬅️ **IMPORTANT: Change this path to your actual logo file**
+              alt="PlaceMate Logo" 
+              className="logo-image" 
+            />
+          </div>
+          {/* 🌟 END LOGO 🌟 */}
+
           <h1 className="title">Welcome Back!</h1>
           <p className="subtitle">Log in to continue to PlaceMate</p>
 
           <div className="role-selector-container">
-            <button typeD="button" className={`role-button ${role === 'user' ? 'role-button-selected' : ''}`} onClick={() => setRole('user')}>
+            <button type="button" className={`role-button ${role === 'user' ? 'role-button-selected' : ''}`} onClick={() => setRole('user')}>
               <span className={`role-button-text ${role === 'user' ? 'role-button-text-selected' : ''}`}>User</span>
             </button>
             <button type="button" className={`role-button ${role === 'mentor' ? 'role-button-selected' : ''}`} onClick={() => setRole('mentor')}>
