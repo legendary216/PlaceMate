@@ -114,38 +114,64 @@ export default function InterviewPage() {
       console.error(err);
     }
   };
-
-  const handleGenerateAnswer = async () => {
+const handleGenerateAnswer = async () => {
     if (!newQuestion.trim()) {
       alert("Please enter a question first.");
       return;
     }
+    
     setIsGenerating(true);
     setNewAnswer("✨ Generating a high-quality answer with Gemini...");
-    const apiKey = ""; 
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-    const systemPrompt = "You are an expert hiring manager. Provide a clear, comprehensive, and well-structured answer to the following interview question, suitable for a job candidate.";
+    
+    // ⚠️ WARNING: INSECURE KEY EXPOSURE FOR TESTING 
+    // Replace "YOUR_HARDCODED_GEMINI_API_KEY_HERE" with your actual key.
+    const apiKey = "AIzaSyDd9V4VDVxmU0zvRlFFzNM0d_Xe1PvYnUA"; 
+    const modelName = "gemini-2.5-flash-lite"; // Use a stable, fast model
+    
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+    
+    const systemPrompt = "You are an expert hiring manager. Provide a clear, comprehensive, and well-structured answer to the following interview question, suitable for a job candidate. Format the response using markdown.";
+    
     const payload = {
-      contents: [{ parts: [{ text: `Question: "${newQuestion}"` }] }],
-      systemInstruction: { parts: [{ text: systemPrompt }] },
+        contents: [
+            { 
+                parts: [{ 
+                    text: `Question: "${newQuestion}"` 
+                }] 
+            }
+        ],
+        systemInstruction: { 
+            parts: [{ 
+                text: systemPrompt 
+            }] 
+        },
     };
+
     try {
       const response = await fetch(apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+
+      if (!response.ok) {
+           const errorData = await response.json();
+           console.error("Gemini API call failed (Client-side):", errorData);
+           throw new Error(`API error: ${response.status} - ${errorData.error?.message || response.statusText}`);
+      }
+      
       const result = await response.json();
       const generatedText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+      
       if (generatedText) {
         setNewAnswer(generatedText);
       } else {
-        setNewAnswer("Sorry, the AI could not generate an answer.");
+        setNewAnswer("Sorry, the AI could not generate an answer (empty response).");
       }
+      
     } catch (error) {
       console.error("Gemini API call failed:", error);
-      setNewAnswer("Failed to generate an answer due to a network or server error.");
+      setNewAnswer(`Failed to generate answer: ${error.message}`);
     } finally {
       setIsGenerating(false);
     }

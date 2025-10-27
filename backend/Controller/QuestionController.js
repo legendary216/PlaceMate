@@ -1,10 +1,7 @@
 import Question from '../models/Questions.js';
 
-/**
- * @desc    Add a new question
- * @route   POST /api/questions
- * @access  Private/Admin
- */
+
+
 export const addQuestion = async (req, res) => {
   try {
     const { question, answer, category, difficulty } = req.body;

@@ -3,7 +3,7 @@ import {
     addQuestion, 
     getQuestionsByCategory, 
     searchQuestions, 
-    deleteQuestion 
+    deleteQuestion
 } from '../Controller/QuestionController.js';
 
 // In a real application, you would import and apply your authentication middleware here
@@ -46,6 +46,8 @@ router.post('/', addQuestion);
 // This route should also be protected for admins.
 // router.delete('/:id', protect, admin, deleteQuestion);
 router.delete('/:id', deleteQuestion);
+
+
 
 export default router;
 
