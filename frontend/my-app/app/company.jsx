@@ -201,27 +201,37 @@ export default function CompanyAnalysis() {
 
     // --- Render Functions ---
     const renderChart = () => {
-        if (isLoadingStats) return <div className="info-text"><Loader2 size={20} className="spinner"/> Loading Chart...</div>;
-        if (!isLoadingStats && placementStats.length === 0) return <div className="info-text">No placement data available for {selectedYear}.</div>;
-        return (
-            <>
-                <div className="chart-toggle">
-                    <button onClick={() => setChartType('bar')} className={chartType === 'bar' ? 'active' : ''}> <BarChartIcon size={16} /> Bar Chart </button>
-                    <button onClick={() => setChartType('pie')} className={chartType === 'pie' ? 'active' : ''}> <PieChart size={16} /> Pie Chart </button>
-                </div>
-                <div className="chart-container">
-                    {chartType === 'bar' ? ( <Bar data={chartData} options={barChartOptions} /> ) : ( <Pie data={chartData} options={pieChartOptions} /> )}
-                </div>
-                <div className="chart-summary-table">
-                    <h4>Placement Summary ({selectedYear})</h4>
-                    <table>
-                        <thead> <tr> <th>Company</th> <th>Students Placed</th> </tr> </thead>
-                        <tbody> {placementStats.map((stat) => ( <tr key={stat.companyId || stat.companyName}> <td>{stat.companyName}</td> <td>{stat.count}</td> </tr> ))} </tbody>
-                    </table>
-                </div>
-            </>
-        );
-    };
+    if (isLoadingStats) return <div className="info-text"><Loader2 size={20} className="spinner"/> Loading Chart...</div>;
+    if (!isLoadingStats && placementStats.length === 0) return <div className="info-text">No placement data available for {selectedYear}.</div>;
+    return (
+      <>
+        <div className="chart-toggle">
+          <button onClick={() => setChartType('bar')} className={chartType === 'bar' ? 'active' : ''}> <BarChartIcon size={16} /> Bar Chart </button>
+          <button onClick={() => setChartType('pie')} className={chartType === 'pie' ? 'active' : ''}> <PieChart size={16} /> Pie Chart </button>
+        </div>
+        <div className="chart-container">
+          {chartType === 'bar' ? ( <Bar data={chartData} options={barChartOptions} /> ) : ( <Pie data={chartData} options={pieChartOptions} /> )}
+        </div>
+        <div className="chart-summary-table">
+          <h4>Placement Summary ({selectedYear})</h4>
+          <table>
+           <thead>
+  <tr>{/* NO space/newline after opening tag */}
+    <th>Company</th>
+    <th>Students Placed</th>
+  </tr>{/* NO space/newline before closing tag */}
+</thead>
+            <tbody>{/* No whitespace here */}{placementStats.map((stat) => (
+              <tr key={stat.companyId || stat.companyName}>
+                <td>{stat.companyName}</td>
+                <td>{stat.count}</td>
+              </tr>
+            ))}</tbody>{/* No whitespace here */}
+          </table>
+        </div>
+      </>
+    );
+  };
 
     const renderCompanyList = () => {
         if (isLoadingCompanies) return <div className="info-text"><Loader2 size={20} className="spinner"/> Loading Companies...</div>;
