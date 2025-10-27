@@ -27,6 +27,8 @@ export default function Layout() {
         {/* Student Bookings Page */}
         <Stack.Screen name="my-bookings" /> 
 
+        <Stack.Screen name="company" />
+
         {/* --- REMOVE THIS LINE --- */}
         {/* <Stack.Screen name="mentorconnect" /> */} 
         {/* The app/mentorconnect folder automatically handles this group */}
