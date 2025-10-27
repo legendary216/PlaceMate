@@ -66,6 +66,7 @@ const extractText = async (fileBuffer, mimetype) => {
                 fullText += pageText + '\n';
             }
             console.log("pdfjs-dist extraction successful.");
+            console.log("Extracted text :",fullText);
             return fullText;
         } catch (pdfError) {
             console.error("Error extracting text with pdfjs-dist:", pdfError);
