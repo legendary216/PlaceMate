@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 // Import all necessary icons
-import { ArrowLeft, Loader2, Building, BarChart, Plus, Edit, Trash2, X, Link as LinkIcon, DollarSign } from 'lucide-react';
+import { ArrowLeft, Loader2, Building, BarChart as BarChartIcon, PieChart, Plus, Edit, Trash2, X, Link as LinkIcon, DollarSign } from 'lucide-react';
 import { useRouter } from 'expo-router';
 // Import Chart.js components
 import { Chart as ChartJS, ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title } from 'chart.js';
-import { Pie, Bar } from 'react-chartjs-2'; // Using Pie chart as an example
+// Import both Bar and Pie components
+import { Bar, Pie } from 'react-chartjs-2';
 
-// Register Chart.js components
+// Register Chart.js components needed for both charts
 ChartJS.register(ArcElement, Tooltip, Legend, CategoryScale, LinearScale, BarElement, Title);
 
-// --- Helper Function to Generate Years ---
+// Helper Function to Generate Years
 const generateYears = (startYear = 2020) => {
     const currentYear = new Date().getFullYear();
     const years = [];
@@ -22,35 +23,35 @@ const generateYears = (startYear = 2020) => {
 
 export default function CompanyAnalysis() {
     const router = useRouter();
-    const availableYears = generateYears(); // Generate year list
+    const availableYears = generateYears();
 
-    const [selectedYear, setSelectedYear] = useState(availableYears[0]); // Default to latest year
+    // --- State Variables ---
+    const [selectedYear, setSelectedYear] = useState(availableYears[0]);
     const [placementStats, setPlacementStats] = useState([]);
     const [companiesList, setCompaniesList] = useState([]);
     const [isLoadingStats, setIsLoadingStats] = useState(false);
     const [isLoadingCompanies, setIsLoadingCompanies] = useState(false);
     const [error, setError] = useState(null);
     const [userRole, setUserRole] = useState(null);
+    const [chartType, setChartType] = useState('bar'); // 'bar' or 'pie' - Default to bar
 
-    // --- State for Modals & Editing ---
+    // Modal States
     const [showAddCompanyModal, setShowAddCompanyModal] = useState(false);
     const [showEditCompanyModal, setShowEditCompanyModal] = useState(false);
     const [showAddPlacementModal, setShowAddPlacementModal] = useState(false);
-    const [editingCompany, setEditingCompany] = useState(null); // Holds company data for edit modal
-    const [modalLoading, setModalLoading] = useState(false); // Loading state for modal submits
-    const [modalError, setModalError] = useState(''); // Error message within modals
+    const [editingCompany, setEditingCompany] = useState(null);
+    const [modalLoading, setModalLoading] = useState(false);
+    const [modalError, setModalError] = useState('');
 
-    // State for Add/Edit Company Form
+    // Form States
     const [newCompanyName, setNewCompanyName] = useState('');
     const [newCompanyDesc, setNewCompanyDesc] = useState('');
     const [newCompanyWebsite, setNewCompanyWebsite] = useState('');
-    const [newCompanyRoles, setNewCompanyRoles] = useState(''); // Comma-separated string
+    const [newCompanyRoles, setNewCompanyRoles] = useState('');
     const [newCompanyLocation, setNewCompanyLocation] = useState('');
-
-     // State for Add Placement Form
     const [newPlacementEmail, setNewPlacementEmail] = useState('');
     const [newPlacementCompany, setNewPlacementCompany] = useState('');
-    const [newPlacementYear, setNewPlacementYear] = useState(selectedYear); // Default to selected year
+    const [newPlacementYear, setNewPlacementYear] = useState(selectedYear);
     const [newPlacementPackage, setNewPlacementPackage] = useState('');
 
 
@@ -64,7 +65,7 @@ export default function CompanyAnalysis() {
         } catch (e) { console.error("Failed to parse user data", e); }
     }, []);
 
-    // --- Refactored fetch function ---
+    // Fetch data function
     const fetchDataForYear = async (year) => {
         if (!year) return;
         setIsLoadingStats(true);
@@ -97,7 +98,6 @@ export default function CompanyAnalysis() {
     }, [selectedYear]);
 
     // --- Admin Action Handlers ---
-
     const handleAddCompanyClick = () => {
         setNewCompanyName(''); setNewCompanyDesc(''); setNewCompanyWebsite('');
         setNewCompanyRoles(''); setNewCompanyLocation('');
@@ -117,7 +117,6 @@ export default function CompanyAnalysis() {
     const handleDeleteCompany = async (companyId, companyName) => {
         if (!window.confirm(`Are you sure you want to delete "${companyName}" and all its placement records? This cannot be undone.`)) return;
         const token = localStorage.getItem('token');
-        // Add loading state specific to the delete button if needed
         try {
             const res = await fetch(`http://localhost:5000/api/companies/${companyId}`, {
                 method: 'DELETE',
@@ -125,44 +124,31 @@ export default function CompanyAnalysis() {
             });
             if (!res.ok) { const data = await res.json(); throw new Error(data.message || 'Delete failed'); }
             alert(`Company "${companyName}" deleted successfully.`);
-            fetchDataForYear(selectedYear); // Refresh data
+            fetchDataForYear(selectedYear);
         } catch (err) { alert(`Error: ${err.message}`); console.error(err); }
-        // Clear loading state here
     };
 
-     const handleAddPlacementClick = () => {
+    const handleAddPlacementClick = () => {
         setNewPlacementEmail(''); setNewPlacementCompany(''); setNewPlacementYear(selectedYear); setNewPlacementPackage('');
         setModalError(''); setShowAddPlacementModal(true);
     };
 
     // --- Modal Submit Handlers ---
-
     const handleSaveCompany = async (isEditing = false) => {
         setModalLoading(true); setModalError('');
         const token = localStorage.getItem('token');
         const url = isEditing ? `/api/companies/${editingCompany._id}` : '/api/companies';
         const method = isEditing ? 'PUT' : 'POST';
-
         const rolesArray = newCompanyRoles.split(',').map(role => role.trim()).filter(role => role);
 
         try {
             const res = await fetch(`http://localhost:5000${url}`, {
                 method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    name: newCompanyName,
-                    description: newCompanyDesc,
-                    website: newCompanyWebsite,
-                    rolesOffered: rolesArray,
-                    location: newCompanyLocation
-                })
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ name: newCompanyName, description: newCompanyDesc, website: newCompanyWebsite, rolesOffered: rolesArray, location: newCompanyLocation })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || (isEditing ? 'Update failed' : 'Add failed'));
-
             alert(`Company ${isEditing ? 'updated' : 'added'} successfully!`);
             setShowAddCompanyModal(false); setShowEditCompanyModal(false); setEditingCompany(null);
             fetchDataForYear(selectedYear);
@@ -176,23 +162,14 @@ export default function CompanyAnalysis() {
         try {
              const res = await fetch(`http://localhost:5000/api/placements`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({
-                    studentEmail: newPlacementEmail,
-                    companyName: newPlacementCompany,
-                    year: newPlacementYear,
-                    packageLPA: newPlacementPackage || undefined
-                })
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ studentEmail: newPlacementEmail, companyName: newPlacementCompany, year: newPlacementYear, packageLPA: newPlacementPackage || undefined })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || 'Failed to add placement record.');
-
             alert(`Placement record added successfully!`);
             setShowAddPlacementModal(false);
-            fetchDataForYear(selectedYear); // Refresh stats and potentially company list if it was the first placement
+            fetchDataForYear(selectedYear);
         } catch (err) { setModalError(err.message); console.error(err); }
         finally { setModalLoading(false); }
     };
@@ -201,25 +178,54 @@ export default function CompanyAnalysis() {
     // --- Chart Data & Options ---
     const chartData = {
         labels: placementStats.map(stat => stat.companyName),
-        datasets: [{ /* ... dataset configuration ... */
+        datasets: [{
             label: '# of Students Placed', data: placementStats.map(stat => stat.count),
             backgroundColor: ['rgba(75, 192, 192, 0.6)','rgba(255, 99, 132, 0.6)','rgba(54, 162, 235, 0.6)','rgba(255, 206, 86, 0.6)','rgba(153, 102, 255, 0.6)','rgba(255, 159, 64, 0.6)', /* ... more colors ... */ ],
             borderColor: ['rgba(75, 192, 192, 1)','rgba(255, 99, 132, 1)','rgba(54, 162, 235, 1)','rgba(255, 206, 86, 1)','rgba(153, 102, 255, 1)','rgba(255, 159, 64, 1)', /* ... more colors ... */ ],
             borderWidth: 1,
         }],
     };
-    const chartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', }, title: { display: true, text: `Placement Distribution for ${selectedYear}`, }, }, };
+    const barChartOptions = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false, }, title: { display: true, text: `Placements by Company (${selectedYear})`, font: { size: 16 } },
+            tooltip: { callbacks: { label: function(context) { let label = context.dataset.label || ''; if (label) { label += ': '; } if (context.parsed.y !== null) { label += context.parsed.y; } return label; } } }
+        },
+        scales: { x: { title: { display: false } }, y: { beginAtZero: true, title: { display: true, text: 'Number of Students Placed' } } }
+    };
+    const pieChartOptions = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: 'top', }, title: { display: true, text: `Placement Distribution (${selectedYear})`, font: { size: 16 } },
+            tooltip: { callbacks: { label: function(context) { let label = context.label || ''; if (label) { label += ': '; } let value = context.parsed || 0; label += value; return label; } } }
+        },
+    };
 
     // --- Render Functions ---
     const renderChart = () => {
         if (isLoadingStats) return <div className="info-text"><Loader2 size={20} className="spinner"/> Loading Chart...</div>;
         if (!isLoadingStats && placementStats.length === 0) return <div className="info-text">No placement data available for {selectedYear}.</div>;
-        return (<div className="chart-container"> <Pie data={chartData} options={chartOptions} /> </div>);
+        return (
+            <>
+                <div className="chart-toggle">
+                    <button onClick={() => setChartType('bar')} className={chartType === 'bar' ? 'active' : ''}> <BarChartIcon size={16} /> Bar Chart </button>
+                    <button onClick={() => setChartType('pie')} className={chartType === 'pie' ? 'active' : ''}> <PieChart size={16} /> Pie Chart </button>
+                </div>
+                <div className="chart-container">
+                    {chartType === 'bar' ? ( <Bar data={chartData} options={barChartOptions} /> ) : ( <Pie data={chartData} options={pieChartOptions} /> )}
+                </div>
+                <div className="chart-summary-table">
+                    <h4>Placement Summary ({selectedYear})</h4>
+                    <table>
+                        <thead> <tr> <th>Company</th> <th>Students Placed</th> </tr> </thead>
+                        <tbody> {placementStats.map((stat) => ( <tr key={stat.companyId || stat.companyName}> <td>{stat.companyName}</td> <td>{stat.count}</td> </tr> ))} </tbody>
+                    </table>
+                </div>
+            </>
+        );
     };
 
     const renderCompanyList = () => {
         if (isLoadingCompanies) return <div className="info-text"><Loader2 size={20} className="spinner"/> Loading Companies...</div>;
-         if (!isLoadingCompanies && companiesList.length === 0) return <div className="info-text">No companies recorded for {selectedYear}.</div>;
+        if (!isLoadingCompanies && companiesList.length === 0) return <div className="info-text">No companies recorded for {selectedYear}.</div>;
         return (
             <div className="company-list">
                 {companiesList.map(company => (
@@ -249,7 +255,7 @@ export default function CompanyAnalysis() {
     return (
         <>
             <style>{`
-                /* --- Styles (includes modal styles) --- */
+                /* --- Styles --- */
                 body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafe; }
                 .page-container { display: flex; flex-direction: column; min-height: 100vh; overflow-y: auto; }
                 .header-container { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; background-color: #fff; border-bottom: 1px solid #e5e7eb; }
@@ -264,7 +270,18 @@ export default function CompanyAnalysis() {
                 .controls-container label { font-weight: 500; }
                 .year-select { padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 1rem; }
                 .chart-section { margin-bottom: 3rem; background-color: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); border: 1px solid #e5e7eb;}
-                .chart-container { position: relative; height: 300px; width: 100%; max-width: 500px; margin: 1rem auto; }
+                .chart-toggle { display: flex; justify-content: center; gap: 0.5rem; margin-bottom: 1.5rem; }
+                .chart-toggle button { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border: 1px solid #d1d5db; background-color: #fff; color: #4b5563; border-radius: 6px; cursor: pointer; font-size: 0.9rem; font-weight: 500; transition: background-color 0.2s, color 0.2s, border-color 0.2s; }
+                .chart-toggle button:hover { background-color: #f3f4f6; }
+                .chart-toggle button.active { background-color: #eef2ff; color: #4f46e5; border-color: #a5b4fc; }
+                .chart-container { position: relative; height: 400px; width: 100%; max-width: 700px; margin: 0 auto; }
+                .chart-summary-table { margin-top: 2rem; border-top: 1px solid #e5e7eb; padding-top: 1.5rem; }
+                .chart-summary-table h4 { text-align: center; margin: 0 0 1rem 0; font-weight: 600; color: #374151; }
+                .chart-summary-table table { width: 100%; max-width: 500px; margin: 0 auto; border-collapse: collapse; font-size: 0.9rem; }
+                .chart-summary-table th, .chart-summary-table td { padding: 0.6rem 0.8rem; text-align: left; border-bottom: 1px solid #f3f4f6; }
+                .chart-summary-table th { font-weight: 600; color: #6b7280; background-color: #f9fafb; }
+                .chart-summary-table tr:last-child td { border-bottom: none; }
+                .chart-summary-table td:last-child { text-align: right; font-weight: 500; }
                 .list-header { font-size: 1.5rem; font-weight: 600; color: #1f2937; margin-bottom: 1.5rem; text-align: center; }
                 .company-list { display: flex; flex-direction: column; gap: 1.5rem; }
                 .company-card { background-color: #fff; border-radius: 8px; border: 1px solid #e5e7eb; padding: 1.5rem; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
@@ -300,6 +317,8 @@ export default function CompanyAnalysis() {
                 .button-confirm { background-color: #4f46e5; color: #fff; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 0.5rem;}
                 .button-confirm:disabled { background-color: #a5b4fc; cursor: not-allowed; }
                 .modal-error { color: #ef4444; font-size: 0.9rem; text-align: center; margin-top: 1rem; }
+
+                
             `}</style>
 
             <div className="page-container">
