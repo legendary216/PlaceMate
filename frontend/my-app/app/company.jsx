@@ -250,7 +250,7 @@ export default function CompanyAnalysis() {
                                 </div>
                              )}
                         </div>
-                        <p className="company-desc">{company.description || 'No description available.'}</p>
+                        {/* <p className="company-desc">{company.description || 'No description available.'}</p> */}
                         <div className="company-details">
                             {company.location && <p><strong>Location:</strong> {company.location}</p>}
                             {company.rolesOffered && company.rolesOffered.length > 0 && <p><strong>Roles Offered:</strong> {company.rolesOffered.join(', ')}</p>}

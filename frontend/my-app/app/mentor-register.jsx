@@ -140,7 +140,10 @@ export default function App() {
     
     if (profilePic) formData.append('profilePic', profilePic);
     if (idProof) formData.append('idProof', idProof);
-    
+    console.log("FormData content before fetch:");
+for (let [key, value] of formData.entries()) {
+    console.log(key, value); // Check if files are listed correctly here
+}
     try {
       const res = await fetch("http://localhost:5000/api/auth/register/registerMentor", {
         method: "POST",

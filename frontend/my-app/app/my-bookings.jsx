@@ -70,7 +70,7 @@ export default function MyBookings() {
         {bookings.map(booking => (
           <div key={booking._id} className={`list-item booking-item status-${booking.status}`}>
             <img /* ... avatar ... */
-                src={booking.mentor.profilePic || 'https://via.placeholder.com/150'}
+                src={booking.mentor.profilePic || 'https://t4.ftcdn.net/jpg/02/15/84/43/360_F_215844325_ttX9YiIIyeaR7Ne6EaLLjMAmy4GvPC69.jpg'}
                 alt={`${booking.mentor.fullName} profile`}
                 className="item-avatar"
              />
