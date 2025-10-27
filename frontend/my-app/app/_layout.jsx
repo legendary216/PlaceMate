@@ -32,6 +32,8 @@ export default function Layout() {
         {/* --- REMOVE THIS LINE --- */}
         {/* <Stack.Screen name="mentorconnect" /> */} 
         {/* The app/mentorconnect folder automatically handles this group */}
+<Stack.Screen name="resume" /> {/* <-- Add this */}
+        
 
       </Stack>
 
