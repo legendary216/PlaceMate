@@ -333,7 +333,15 @@ export default function CompanyAnalysis() {
 
             <div className="page-container">
                 <header className="header-container">
-                     <div className="header-left"> <button onClick={() => router.back()} className="back-button" title="Back"> <ArrowLeft size={24} color="#4f46e5" /> </button> <h1 className="header-title">Company Analysis</h1> </div>
+                     <div className="header-left"> 
+                        <button onClick={() => {
+                                // Check if router can go back
+                                if (router.canGoBack()) {
+                                    router.back(); // Go back if possible
+                                } else {
+                                    router.push('/home'); // Go to home if not
+                                }
+                            }} className="back-button" title="Back"> <ArrowLeft size={24} color="#4f46e5" /> </button> <h1 className="header-title">Company Analysis</h1> </div>
                 </header>
 
                 <main className="main-content">
