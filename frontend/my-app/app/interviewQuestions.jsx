@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, Code, User, BrainCircuit, Plus, Sparkles, Trash2, RotateCw } from 'lucide-react';
+import { ArrowLeft, Code, User, BrainCircuit, Plus, Sparkles, Trash2, RotateCw, ChevronDown } from 'lucide-react';
 
 // This is the complete Interview Questions page.
 // It includes role-based features: Admins can add, delete, and generate answers with AI.
@@ -9,6 +9,8 @@ export default function InterviewPage() {
   const [activeTab, setActiveTab] = useState('technical');
   const [questions, setQuestions] = useState([]);
   const [expandedQuestionId, setExpandedQuestionId] = useState(null);
+  // --- NEW STATE FOR SORTING ---
+  const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'oldest', 'easy', 'hard'
 
   // --- State for Admin & AI Features ---
   const [userRole, setUserRole] = useState(null);
@@ -41,6 +43,7 @@ export default function InterviewPage() {
     setFetchError(null);
     try {
       // NOTE: This relies on your local backend server (localhost:5000) for question CRUD.
+      // Your backend must return the questions already sorted by date (e.g., newest first).
       const response = await fetch(`http://localhost:5000/api/questions/${category}`);
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
@@ -58,6 +61,7 @@ export default function InterviewPage() {
     setActiveTab(tab);
     fetchQuestions(tab);
     setExpandedQuestionId(null);
+    setSortOrder('newest'); // Reset sort to default/newest on category switch
   };
 
   const handleQuestionClick = (id) => {
@@ -148,7 +152,6 @@ export default function InterviewPage() {
                 }] 
             }
         ],
-        // Note: systemInstruction is passed outside contents array in the REST API structure
         systemInstruction: { 
             parts: [{ 
                 text: systemPrompt 
@@ -186,12 +189,56 @@ export default function InterviewPage() {
     }
   };
   // --------------------------------------------------------------------
+  
+  // --- NEW: Sorts the questions array locally based on difficulty or time ---
+  const handleSortChange = (newSortOrder) => {
+    setSortOrder(newSortOrder);
+    
+    // Mapping for Difficulty sort order
+    const difficultyMap = { 'Easy': 1, 'Medium': 2, 'Hard': 3 };
+    
+    // Sort logic depends on the type of sort requested
+    const sortedQuestions = [...questions].sort((a, b) => {
+      
+      if (newSortOrder === 'easy' || newSortOrder === 'hard') {
+        // --- Sort by Difficulty ---
+        const difficultyA = difficultyMap[a.difficulty] || 99;
+        const difficultyB = difficultyMap[b.difficulty] || 99;
+        
+        if (newSortOrder === 'easy') {
+          return difficultyA - difficultyB; // Easy (asc)
+        } else {
+          return difficultyB - difficultyA; // Hard (desc)
+        }
+      } 
+      
+      // --- Sort by Time/Date ---
+      // We assume your backend includes a 'createdAt' timestamp for accurate time sort
+      const dateA = new Date(a.createdAt || 0); // Use 0 if createdAt is missing
+      const dateB = new Date(b.createdAt || 0);
+      
+      if (newSortOrder === 'newest') {
+        return dateB - dateA; // Newest first (desc)
+      } else if (newSortOrder === 'oldest') {
+        return dateA - dateB; // Oldest first (asc)
+      }
+
+      return 0; // No sort change
+    });
+
+    setQuestions(sortedQuestions);
+  };
 
 
   const renderContent = () => {
     if (isLoading) return <p className="info-text">Loading questions...</p>;
     if (fetchError) return <p className="error-text">{fetchError}</p>;
-    if (questions.length === 0) return <p className="info-text">No questions found for this category.</p>;
+    
+    if (questions.length === 0) return (
+        <div className="empty-state">
+            <p className="info-text">No questions found for this category.</p>
+        </div>
+    );
     
   return questions.map((q) => (
       <div key={q._id} className="question-card">
@@ -206,6 +253,7 @@ export default function InterviewPage() {
                 <Trash2 size={18} />
               </button>
             )}
+            {/* REMOVED CHEVRON DOWN ICON FROM HERE */}
           </div>
         </div>
         <div className={`question-answer ${expandedQuestionId === q._id ? 'expanded' : ''}`}>
@@ -225,6 +273,86 @@ export default function InterviewPage() {
         .back-button { padding: 0.5rem; background-color: #eef2ff; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; text-decoration: none; margin-right: 1rem; }
         .header-title { font-size: 1.75rem; font-weight: 700; color: #111827; }
         .main-content { padding: 2rem 1.5rem; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+        
+        /* NEW CONTROL BAR STYLES */
+        .control-bar { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 1.5rem; 
+            padding: 0.5rem 0;
+            /* Ensure alignment in one line */
+            flex-wrap: nowrap; 
+            gap: 1rem;
+            /* Ensure controls are fixed to the right on scroll (Optional: but improves UX) */
+            position: sticky;
+            top: 0;
+            background-color: #f9fafe; /* Match page background */
+            z-index: 10;
+        }
+        
+        /* UPDATED STYLES FOR SORTING BAR */
+        .sort-bar { 
+            display: flex; 
+            align-items: center; 
+            /* Push sort menu to the right */
+            margin-left: auto; 
+            gap: 0.5rem; 
+        }
+        .sort-control-group {
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+        .sort-label { 
+            font-size: 0.9rem; 
+            color: #4b5563; 
+            font-weight: 500; 
+            margin-right: 0.25rem; /* Reduced margin */
+            flex-shrink: 0; 
+        }
+        .sort-select { 
+            padding: 0.5rem 2.5rem 0.5rem 0.75rem; 
+            border: 2px solid #e5e7eb; /* Slightly thicker border for style */
+            border-radius: 8px; 
+            font-size: 0.9rem; 
+            background-color: #fff; /* White background for contrast */
+            cursor: pointer; 
+            appearance: none; 
+            min-width: 150px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            transition: border-color 0.2s;
+        }
+        .sort-select:focus {
+            outline: none;
+            border-color: #4f46e5;
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
+        }
+        .select-icon {
+            position: absolute;
+            right: 8px;
+            pointer-events: none; 
+            color: #4f46e5; /* Distinct color for icon */
+        }
+        /* ADDED STYLE FOR BUTTON SIZE */
+        .add-question-btn { 
+            display: flex; 
+            align-items: center; 
+            gap: 0.5rem; 
+            background-color: #4f46e5; 
+            color: white; 
+            border: none; 
+            padding: 0.5rem 1rem; /* Compact padding */
+            border-radius: 8px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            transition: background-color 0.2s; 
+            font-size: 0.9rem; 
+            flex-shrink: 0; 
+        }
+        .add-question-btn:hover { background-color: #4338ca; }
+        /* END NEW STYLES */
+
         .accordion-container { display: flex; flex-direction: column; gap: 1rem; }
         .question-card { background-color: #fff; border-radius: 0.75rem; border: 1px solid #e5e7eb; overflow: hidden; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); }
         .question-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; cursor: pointer; }
@@ -236,8 +364,6 @@ export default function InterviewPage() {
         .bottom-tab-bar { position: fixed; bottom: 0; left: 0; width: 100%; display: flex; justify-content: space-around; background-color: #ffffff; border-top: 1px solid #e5e7eb; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); padding: 0.5rem 0; z-index: 100; }
         .tab-button { display: flex; flex-direction: column; align-items: center; gap: 4px; background: transparent; border: none; cursor: pointer; color: #6b7280; padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 600; border-radius: 8px; transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out; }
         .tab-button.active { color: #4f46e5; }
-        .add-question-btn { display: flex; align-items: center; gap: 0.5rem; background-color: #4f46e5; color: white; border: none; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
-        .add-question-btn:hover { background-color: #4338ca; }
         .delete-button { background: transparent; border: none; cursor: pointer; color: #ef4444; padding: 0.5rem; border-radius: 50%; margin-left: 0.5rem; flex-shrink: 0; }
         .delete-button:hover { background-color: #fee2e2; }
         .modal-overlay { position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 200; }
@@ -275,14 +401,41 @@ export default function InterviewPage() {
             <a href="/home" className="back-button" title="Back to Home"><ArrowLeft size={24} color="#4f46e5" /></a>
             <h1 className="header-title">Interview Questions</h1>
           </div>
-          {userRole === 'admin' && (
-            <button className="add-question-btn" onClick={() => setShowAddForm(true)}>
-              <Plus size={20} /> Add New Question
-            </button>
-          )}
+          {/* REMOVED ADD BUTTON FROM HEADER */}
         </header>
 
         <main className="main-content">
+          {/* NEW CONTROL BAR: Houses Add Button (Left) and Sort Dropdown (Right) */}
+          <div className="control-bar">
+            {userRole === 'admin' && (
+              <button className="add-question-btn" onClick={() => setShowAddForm(true)}>
+                <Plus size={20} /> Add 
+              </button>
+            )}
+
+            {/* SORT BAR */}
+            <div className="sort-bar">
+              <label className="sort-label" htmlFor="sort-select">Sort By:</label>
+              <div className="sort-control-group">
+                  <select 
+                      id="sort-select" 
+                      className="sort-select" 
+                      value={sortOrder} 
+                      onChange={(e) => handleSortChange(e.target.value)}
+                  >
+                      <option value="newest">Time (Newest)</option>
+                      <option value="oldest">Time (Oldest)</option>
+                      <option disabled>--- Difficulty ---</option>
+                      <option value="hard">Difficulty (Hardest)</option>
+                      <option value="easy">Difficulty (Easiest)</option>
+                  </select>
+                  <ChevronDown size={20} className="select-icon" />
+              </div>
+            </div>
+            {/* END SORT BAR */}
+          </div>
+          {/* END CONTROL BAR */}
+
           <section className="accordion-container">
             {renderContent()}
           </section>
