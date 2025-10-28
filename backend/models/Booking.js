@@ -38,10 +38,7 @@ const bookingSchema = new mongoose.Schema({
     trim: true,
   },
 
-  hasBeenReviewed: {
-    type: Boolean,
-    default: false
-  }
+ 
 }, {
   timestamps: true // Adds createdAt and updatedAt
 });
