@@ -39,7 +39,10 @@ export const getMentorProfile = async (req, res) => {
       profilePic: mentor.profilePic,
       // --- ADD THIS FIELD ---
       availabilitySlots: mentor.availabilitySlots,
-      fees: mentor.fees
+      fees: mentor.fees,
+
+      averageRating: mentor.averageRating,
+      numReviews: mentor.numReviews
       // --- REMOVE THESE FIELDS ---
       // availability: mentor.availability, // Old field
       // hours: mentor.hours,             // Old field

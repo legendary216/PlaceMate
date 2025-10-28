@@ -36,6 +36,11 @@ const bookingSchema = new mongoose.Schema({
   meetingLink: {
     type: String, // To store the Google Meet / Zoom link etc.
     trim: true,
+  },
+
+  hasBeenReviewed: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true // Adds createdAt and updatedAt
