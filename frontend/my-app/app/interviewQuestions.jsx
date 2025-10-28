@@ -100,7 +100,7 @@ export default function InterviewPage() {
     if (!window.confirm("Are you sure you want to delete this question?")) return; 
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch(`http://localhost:5000/api/questions/${questionId}`, {
+      const res = await fetch(`https://placemate-ru7v.onrender.com/api/questions/${questionId}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });
