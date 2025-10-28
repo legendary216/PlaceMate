@@ -19,6 +19,6 @@ router.get('/:mentorId', getMentorReviews);
 
 // Create a new review for a specific booking (Student only)
 // e.g., POST /api/reviews/60e...
-router.post('/:bookingId', protect, authorize('user'), createReview);
+router.post('/:mentorId', protect, authorize('user'), createReview);
 
 export default router;
