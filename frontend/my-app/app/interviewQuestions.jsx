@@ -72,7 +72,7 @@ export default function InterviewPage() {
     e.preventDefault();
     const token = localStorage.getItem('token');
     try {
-      const res = await fetch("http://localhost:5000/api/questions", {
+      const res = await fetch("https://placemate-ru7v.onrender.com/api/questions", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({ question: newQuestion, answer: newAnswer, category: newCategory, difficulty: newDifficulty }),
