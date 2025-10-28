@@ -37,9 +37,9 @@ export const createReview = async (req, res) => {
   } catch (err) {
     console.error("Error creating review:", err);
     // --- Handle duplicate key error ---
-    if (err.code === 11000) { // Error code for unique index violation
-      return res.status(400).json({ message: 'You have already submitted a review for this mentor.' });
-    }
+    // if (err.code === 11000) { // Error code for unique index violation
+    //   return res.status(400).json({ message: 'You have already submitted a review for this mentor.' });
+    // }
     // --- Handle Mongoose validation errors (if any remain in the model) ---
     if (err.name === 'ValidationError') {
         const messages = Object.values(err.errors).map(val => val.message);

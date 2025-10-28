@@ -12,7 +12,6 @@ import connectionRoutes from './Routes/connectionRoutes.js';
 import bookingRoutes from './Routes/bookingRoutes.js';
 import companyRoutes from './Routes/companyRoutes.js';
 import resumeRoutes from './Routes/resumeRotues.js';
-import reviewRoutes from './Routes/reviewRoutes.js';
 
 import './config/cloudinaryConfig.js';
 import path, { dirname } from 'path';
@@ -49,7 +48,6 @@ app.use('/api/connections', connectionRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api', companyRoutes);
 app.use('/api/resume', resumeRoutes);
-app.use('/api/reviews', reviewRoutes);
 
 // Make the 'uploads' folder publicly accessible
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));

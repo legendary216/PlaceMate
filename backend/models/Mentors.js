@@ -49,18 +49,6 @@ const mentorSchema = new mongoose.Schema({
         default: 0 // Default to 0 or leave undefined if required
     },
 
-    averageRating: {
-        type: Number,
-        min: 0,
-        max: 5,
-        default: 0
-    },
-    numReviews: {
-        type: Number,
-        min: 0,
-        default: 0
-    },
-    
     profilePic: {
         type: String,
         default: 'no-photo.jpg'

@@ -34,7 +34,7 @@ const reviewSchema = new mongoose.Schema({
 });
 
 // --- NEW: Enforce one review per student/mentor ---
-reviewSchema.index({ student: 1, mentor: 1 }, { unique: true });
+//reviewSchema.index({ student: 1, mentor: 1 }, { unique: true });
 
 // --- (This static method calculateAverageRating remains the same) ---
 reviewSchema.statics.calculateAverageRating = async function(mentorId) {
