@@ -81,9 +81,9 @@ function EditCompanyModal({ isVisible, onClose, onSubmit, companyToEdit, styles 
               {/* Use edit* state variables */}
               <View style={styles.formGroup}> <Text style={styles.formLabel}>Company Name *</Text> <TextInput style={styles.formInput} value={editCompanyName} onChangeText={setEditCompanyName} required /> </View>
               <View style={styles.formGroup}> <Text style={styles.formLabel}>Website</Text> <TextInput style={styles.formInput} value={editCompanyWebsite} onChangeText={setEditCompanyWebsite} placeholder="https://..." keyboardType="url" /> </View>
-              <View style={styles.formGroupFull}> <Text style={styles.formLabel}>Description</Text> <TextInput style={styles.formTextarea} value={editCompanyDesc} onChangeText={setEditCompanyDesc} multiline numberOfLines={3} /> </View>
+             <View style={styles.formGroup}> <Text style={styles.formLabel}>Description</Text> <TextInput style={[styles.formInput, styles.formTextarea]} value={editCompanyDesc} onChangeText={setEditCompanyDesc} multiline numberOfLines={3} /> </View>
               <View style={styles.formGroup}> <Text style={styles.formLabel}>Location</Text> <TextInput style={styles.formInput} value={editCompanyLocation} onChangeText={setEditCompanyLocation} /> </View>
-              <View style={styles.formGroupFull}> <Text style={styles.formLabel}>Roles Offered (comma-separated)</Text> <TextInput style={styles.formInput} value={editCompanyRoles} onChangeText={setEditCompanyRoles} placeholder="e.g., SDE, Analyst, Manager" /> </View>
+              <View style={styles.formGroup}> <Text style={styles.formLabel}>Roles Offered (comma-separated)</Text> <TextInput style={styles.formInput} value={editCompanyRoles} onChangeText={setEditCompanyRoles} placeholder="e.g., SDE, Analyst, Manager" /> </View>
             </View>
             {modalError && <Text style={styles.modalError}>{modalError}</Text>}
           </ScrollView>
