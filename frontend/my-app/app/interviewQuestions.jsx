@@ -11,6 +11,7 @@ import {
   TextInput,
   Alert,
   Platform,
+  StatusBar,
 } from "react-native";
 import {
   ArrowLeft,
@@ -204,6 +205,16 @@ export default function InterviewPage() {
     );
   };
 
+  const handleCloseModal = () => {
+    setShowAddForm(false); // Close the modal
+    
+    // Reset all the form fields to their default values
+    setNewQuestion("");
+    setNewAnswer("");
+    setNewCategory("technical");
+    setNewDifficulty("Medium");
+    setIsGenerating(false); // Also reset the AI button
+  };
 
   // --- Client-Side AI Generation (Using API Call) ---
   const handleGenerateAnswer = async () => {
@@ -305,7 +316,7 @@ export default function InterviewPage() {
                     styles[`difficulty-${q.difficulty?.toLowerCase()}`]
                 ]}
             >
-                <Text style={styles.difficultyText}>{q.difficulty}</Text>
+              <Text style={styles.difficultyText}>{q.difficulty}</Text>
             </View>
             {userRole === 'admin' && (
               <Pressable 
@@ -319,12 +330,15 @@ export default function InterviewPage() {
           </View>
         </Pressable>
         {expandedQuestionId === q._id && (
-            <ScrollView style={styles.questionAnswerContainer}>
-                <Text style={styles.questionAnswerText}>
-                    {q.answer}
-                </Text>
-            </ScrollView>
-        )}
+            <ScrollView 
+                style={styles.questionAnswerContainer}
+tr             nestedScrollEnabled={true} // 👈 ADD THIS LINE
+            >
+                <Text style={styles.questionAnswerText}>
+                    {q.answer}
+                </Text>
+            </ScrollView>
+        )}
       </View>
     ));
   };
@@ -357,12 +371,12 @@ export default function InterviewPage() {
           <View style={styles.sortBar}>
             <Text style={styles.sortLabel}>Sort By:</Text>
             <View style={styles.sortControlGroup}>
-                <Picker
-                    selectedValue={sortOrder}
-                    onValueChange={(itemValue) => handleTabClick(itemValue)}
-                    style={styles.sortSelect}
-                    dropdownIconColor="#4f46e5"
-                >
+              <Picker
+                    selectedValue={sortOrder}
+                    onValueChange={(itemValue) => setSortOrder(itemValue)} // 👈 RIGHT
+                    style={styles.sortSelect}
+                    dropdownIconColor="#4f46e5"
+                >
                     <Picker.Item label="Time (Newest)" value="newest" />
                     <Picker.Item label="Time (Oldest)" value="oldest" />
                     <Picker.Item label="Difficulty (Hardest)" value="hard" />
@@ -408,12 +422,15 @@ export default function InterviewPage() {
         visible={showAddForm}
         transparent={true}
         animationType="slide"
-        onRequestClose={() => setShowAddForm(false)}
+        onRequestClose={handleCloseModal}
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalTitle}>Add a New Interview Question</Text>
-            <ScrollView contentContainerStyle={styles.modalScroll}>
+            <ScrollView 
+            contentContainerStyle={styles.modalScroll} 
+            style={styles.scrollViewWindow} // 👈 ADD THIS
+          >
                 <View style={styles.formGroup}>
                     <Text style={styles.formLabel}>Category</Text>
                     <View style={styles.pickerWrapper}>
@@ -481,7 +498,7 @@ export default function InterviewPage() {
             </ScrollView>
 
             <View style={styles.modalActions}>
-              <Pressable style={styles.buttonCancel} onPress={() => setShowAddForm(false)}>
+              <Pressable style={styles.buttonCancel} onPress={handleCloseModal}>
                 <Text style={styles.buttonCancelText}>Cancel</Text>
               </Pressable>
               <Pressable style={styles.buttonPrimary} onPress={handleAddQuestionSubmit} disabled={isGenerating}>
@@ -505,7 +522,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 12,
+    // paddingVertical: 12, // 👈 REMOVE THIS
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 12 : 12, // 👈 ADD THIS
+    paddingBottom: 12, // 👈 ADD THIS
     paddingHorizontal: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
@@ -569,19 +588,16 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   sortControlGroup: {
-    position: 'relative',
-    justifyContent: 'center',
-    width: 160,
-    height: 40,
-    borderRadius: 8,
-    overflow: 'hidden', // to hide picker artifacts on some platforms
-    borderWidth: 2,
-    borderColor: '#e5e7eb',
-    backgroundColor: '#fff',
-  },
+    width: 160,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#fff',
+    justifyContent: 'center', // 👈 Keep this
+},
   sortSelect: {
     width: '100%',
-    height: 40,
+    //height: 40,
     color: '#1f2937',
   },
   accordionContainer: {
@@ -647,6 +663,9 @@ const styles = StyleSheet.create({
   'difficulty-easy': { backgroundColor: '#dcfce7', color: '#166534' },
   'difficulty-medium': { backgroundColor: '#fef3c7', color: '#92400e' },
   'difficulty-hard': { backgroundColor: '#fee2e2', color: '#991b1b' },
+  'difficulty-text-easy': { color: '#166534' },
+  'difficulty-text-medium': { color: '#92400e' },
+  'difficulty-text-hard': { color: '#991b1b' },
   deleteButton: {
     padding: 8,
     borderRadius: 20,
@@ -708,13 +727,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  modalBox: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 24,
-    width: '90%',
-    maxWidth: 512,
-  },
+ modalBox: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 24,
+    width: '90%',
+    maxWidth: 512,
+    maxHeight: '80%', 
+    flexShrink: 1, // 👈 ADD THIS LINE
+  },
   modalTitle: {
     fontSize: 20,
     fontWeight: '600',
@@ -722,8 +743,11 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   modalScroll: {
-    maxHeight: 400, // Limit scroll view height
+  //  maxHeight: 400, // Limit scroll view height
   },
+  scrollViewWindow: {
+    maxHeight: 400, 
+  },
   formGroup: {
     marginBottom: 16,
   },
@@ -803,7 +827,7 @@ const styles = StyleSheet.create({
   },
   formPicker: {
     width: '100%',
-    height: 40,
+    //height: 40,
     color: '#1f2937',
   },
   animateSpin: {

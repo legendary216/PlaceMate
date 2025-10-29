@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter, Link } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -23,6 +24,7 @@ export default function Login() {
   const [role, setRole] = useState("user");
   const [error, setError] = useState("");
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter(); // Expo Router's hook for navigation
 
   const validateInputs = () => {
@@ -47,6 +49,8 @@ export default function Login() {
         return;
       }
       if (!validateInputs()) return;
+
+      setIsLoading(true);
 
       const res = await fetch(
         "https://placemate-ru7v.onrender.com/api/auth/login/handlelogin",
@@ -87,6 +91,8 @@ export default function Login() {
     } catch (err) {
       setError("Could not connect to the server. Please check your connection.");
       console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -199,10 +205,17 @@ export default function Login() {
               secureTextEntry // Hides the password
               placeholderTextColor="#999"
             />
-
-            <Pressable style={styles.buttonPrimary} onPress={handleLogin}>
-              <Text style={styles.buttonPrimaryText}>Log In</Text>
-            </Pressable>
+<Pressable
+              style={styles.buttonPrimary}
+              onPress={handleLogin}
+              disabled={isLoading} // 👈 ADD THIS
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#fff" /> // 👈 ADD THIS
+              ) : (
+                <Text style={styles.buttonPrimaryText}>Log In</Text> // 👈 YOUR ORIGINAL TEXT
+              )}
+            </Pressable>
 
             {role !== "admin" && (
               <Link

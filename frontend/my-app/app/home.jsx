@@ -6,6 +6,8 @@ import {
   Text,
   Pressable,
   StyleSheet,
+  Platform, // 👈 ADD THIS
+  StatusBar,
 } from "react-native";
 import {
   MessageSquare,
@@ -134,7 +136,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 16 : 16, // 👈 ADD THIS
+    paddingBottom: 16, // 👈 ADD THIS
     paddingHorizontal: 24,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
@@ -195,7 +198,7 @@ const styles = StyleSheet.create({
   },
   notification: {
     position: 'absolute',
-    top: 40,
+    top: Platform.OS === 'android' ? StatusBar.currentHeight + 10 : 40,
     alignSelf: 'center',
     paddingVertical: 12,
     paddingHorizontal: 24,
