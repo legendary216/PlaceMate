@@ -584,12 +584,12 @@ const styles = StyleSheet.create({
     modalScrollView: { // Ensure this has maxHeight
         maxHeight: 400, 
     },
-    pickerWithoutWrapper: { // For the picker in AddPlacementModal
-        borderWidth: 1,
-        borderColor: '#d1d5db',
-        borderRadius: 8,
-        backgroundColor: '#fff', 
-    },
+    // pickerWithoutWrapper: { // For the picker in AddPlacementModal
+    //     borderWidth: 1,
+    //     borderColor: '#d1d5db',
+    //     borderRadius: 8,
+    //     backgroundColor: '#fff', 
+    // },
     chartPlaceholderContainer:{ // Placeholder for empty chart
       alignItems: 'center',
       justifyContent: 'center',
@@ -608,7 +608,13 @@ const styles = StyleSheet.create({
     adminAddButtonText: { color: 'white', fontWeight: '600', fontSize: 15 },
     controlsContainer: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 16, marginBottom: 32 },
     controlsLabel: { fontWeight: '500', fontSize: 16, color: '#374151' },
-    pickerWrapper: { borderWidth: 1, borderColor: '#d1d5db', borderRadius: 6, backgroundColor: '#fff', minWidth: 150 }, // Keep border here for main picker if used
+    pickerWrapper: { 
+      borderWidth: 1, 
+      borderColor: '#d1d5db', 
+      borderRadius: 6, 
+      backgroundColor: '#fff',
+       minWidth: 150 
+      }, // Keep border here for main picker if used
     yearSelect: { width: '100%', itemStyle: { color: '#1f2937', fontSize: 16 } }, // Keep itemStyle if using native picker elsewhere
     chartSection: { marginBottom: 48, backgroundColor: '#fff', padding: 24, borderRadius: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 5, elevation: 3, borderWidth: 1, borderColor: '#e5e7eb' },
     chartToggle: { flexDirection: 'row', justifyContent: 'center', gap: 8, marginBottom: 24 },

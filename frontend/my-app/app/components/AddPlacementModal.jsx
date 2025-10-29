@@ -79,14 +79,16 @@ function AddPlacementModal({ isVisible, onClose, onSubmit, availableYears, defau
               <View style={styles.formGroup}> <Text style={styles.formLabel}>Placement Year *</Text>
                  {/* Keep Picker here, but remove wrapper if needed */}
                  {/* Assuming pickerWithoutWrapper style is defined/passed */}
-                 <Picker
-                    selectedValue={newPlacementYear}
-                    onValueChange={setNewPlacementYear}
-                    style={[styles.formPicker, styles.pickerWithoutWrapper]} // Use combined style
-                    itemStyle={{ color: '#1f2937', fontSize: 16 }} // Keep itemStyle
-                 >
-                   {availableYears.map(year => ( <Picker.Item key={year} label={year} value={year} /> ))}
-                 </Picker>
+                 <View style={styles.pickerWrapper}> {/* 👈 ADD WRAPPER BACK */}
+               <Picker
+                  selectedValue={newPlacementYear}
+                  onValueChange={setNewPlacementYear}
+                  style={styles.formPicker} // 👈 Just formPicker style
+                  itemStyle={{ color: '#1f2937', fontSize: 16 }}
+               >
+                 {availableYears.map(year => ( <Picker.Item key={year} label={year} value={year} /> ))}
+               </Picker>
+             </View> {/* 👈 END WRAPPER */}
               </View>
               <View style={styles.formGroup}> <Text style={styles.formLabel}>Package (LPA)</Text> <TextInput style={styles.formInput} value={newPlacementPackage} onChangeText={setNewPlacementPackage} keyboardType="numeric" placeholder="e.g., 12.5" /> </View>
             </View>
