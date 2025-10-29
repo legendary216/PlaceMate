@@ -328,22 +328,31 @@ export default function CompanyAnalysis() {
               // Adjust padding dynamically if possible, or use a fixed value that works well
               paddingLeft={"15"} // May need adjustment based on chart size/labels
               center={[screenWidth / 4, 0]} // Try adjusting center based on width
-              absolute // To show actual counts
+              //absolute // To show actual counts
               style={chartConfig.style} // Apply style from config
+              hasLegend={false}
             />
           )}
         </View>
         
         {/* Render legend only for Pie chart for clarity, bar chart has labels */}
         {chartType === 'pie' && placementStats.length > 0 && (
-          <View style={styles.chartLegend}>
-            {pieData.map((entry) => ( // Use pieData which has colors
-              <View key={entry.name} style={styles.legendItem}>
-                <View style={[styles.legendColorBox, { backgroundColor: entry.color }]} />
-                {/* Display full name in legend */}
-                <Text style={styles.legendText}>{placementStats.find(s=>s.companyName.startsWith(entry.name.substring(0,9)))?.companyName} ({entry.count})</Text>
-              </View>
-            ))}
+         <View style={styles.chartLegend}>
+            {/* Map over pieData which has colors and potentially truncated names */}
+            {pieData.map((entry) => {
+               // Find the original stat to get the full company name if needed
+               const originalStat = placementStats.find(s => s.count === entry.count && s.companyName.startsWith(entry.name.substring(0,5))); // Match based on count and start of name
+               const fullName = originalStat ? originalStat.companyName : entry.name; // Fallback to potentially truncated name
+
+               return (
+                  <View key={entry.name} style={styles.legendItem}>
+                    {/* Use color directly from pieData entry */}
+                    <View style={[styles.legendColorBox, { backgroundColor: entry.color }]} /> 
+                    {/* Display full name and count */}
+                    <Text style={styles.legendText}>{fullName} ({entry.count})</Text> 
+                  </View>
+               );
+            })}
           </View>
         )}
       </View>
