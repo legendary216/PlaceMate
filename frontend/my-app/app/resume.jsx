@@ -10,6 +10,7 @@ import {
     TextInput,
     Alert,
     Platform, // Used for platform-specific file handling placeholder
+    StatusBar
 } from 'react-native';
 import {
     ArrowLeft,
@@ -364,7 +365,8 @@ const styles = StyleSheet.create({
     headerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 12, // 1.25rem = 20px
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 12 : 12, // 👈 ADDED
+        paddingBottom: 12, // 👈 ADDED
         paddingHorizontal: 16, // 1.5rem = 24px
         backgroundColor: '#fff',
         borderBottomWidth: 1,
