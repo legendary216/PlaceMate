@@ -12,6 +12,8 @@ import {
   Alert,
   Linking,
   Dimensions, 
+  Platform, // 👈 ADD THIS
+  StatusBar,
 } from 'react-native';
 import {
   ArrowLeft,
@@ -462,11 +464,16 @@ export default function CompanyAnalysis() {
               <View style={styles.formGroup}> <Text style={styles.formLabel}>Student Email *</Text> <TextInput style={styles.formInput} value={newPlacementEmail} onChangeText={setNewPlacementEmail} required placeholder="student@example.com" keyboardType="email-address" /> </View>
               <View style={styles.formGroup}> <Text style={styles.formLabel}>Company Name *</Text> <TextInput style={styles.formInput} value={newPlacementCompany} onChangeText={setNewPlacementCompany} required placeholder="Enter exact company name" /> </View>
               <View style={styles.formGroup}> <Text style={styles.formLabel}>Placement Year *</Text> 
-                <View style={styles.pickerWrapper}>
-                  <Picker selectedValue={newPlacementYear} onValueChange={setNewPlacementYear} style={styles.formPicker}>
+                {/* <View style={styles.pickerWrapper}> */}
+                 <Picker 
+                selectedValue={newPlacementYear} 
+                onValueChange={setNewPlacementYear}
+                style={[styles.formPicker, styles.pickerWithoutWrapper]}
+                itemStyle={{ color: '#1f2937', fontSize: 16 }} // 👈 ADD THIS
+              >
                     {availableYears.map(year => ( <Picker.Item key={year} label={year} value={year} /> ))}
                   </Picker>
-                </View>
+                {/* </View> */}
               </View>
               <View style={styles.formGroup}> <Text style={styles.formLabel}>Package (LPA)</Text> <TextInput style={styles.formInput} value={newPlacementPackage} onChangeText={setNewPlacementPackage} keyboardType="numeric" placeholder="e.g., 12.5" /> </View>
             </View>
@@ -504,7 +511,12 @@ export default function CompanyAnalysis() {
             <View style={styles.controlsContainer}> 
                 <Text style={styles.controlsLabel}>Select Year:</Text> 
                 <View style={styles.pickerWrapper}>
-                    <Picker selectedValue={selectedYear} onValueChange={setSelectedYear} style={styles.yearSelect}> 
+                    <Picker 
+                  selectedValue={selectedYear} 
+                  onValueChange={setSelectedYear} 
+                  style={styles.yearSelect}
+                  itemStyle={{ color: '#1f2937', fontSize: 16 }} // 👈 ADD THIS
+                >
                         {availableYears.map(year => ( <Picker.Item key={year} label={year} value={year} /> ))} 
                     </Picker> 
                 </View>
@@ -542,7 +554,8 @@ const styles = StyleSheet.create({
     headerContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingVertical: 12,
+        paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 12 : 12, // 👈 ADD THIS
+        paddingBottom: 12,
         paddingHorizontal: 16,
         backgroundColor: '#fff',
         borderBottomWidth: 1,
@@ -596,6 +609,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 16,
         marginBottom: 32,
+      
     },
     controlsLabel: {
         fontWeight: '500',
@@ -607,14 +621,15 @@ const styles = StyleSheet.create({
         borderColor: '#d1d5db',
         borderRadius: 6,
         backgroundColor: '#fff',
-        height: 44,
-        justifyContent: 'center',
-        overflow: 'hidden',
+        //height: 44,
+        //justifyContent: 'center',
+        //overflow: 'hidden',
         minWidth: 150,
     },
     yearSelect: {
         width: '100%',
-        height: 44,
+        itemStyle: { color: '#1f2937', fontSize: 16 }
+       // height: 44,
     },
     chartSection: {
         marginBottom: 48,
@@ -875,8 +890,16 @@ const styles = StyleSheet.create({
     },
     formPicker: {
         width: '100%',
-        height: 40,
+        //height: 40,
         color: '#1f2937',
+    },
+    pickerWithoutWrapper: {
+        borderWidth: 1,
+        borderColor: '#d1d5db',
+        borderRadius: 8,
+        backgroundColor: '#fff', 
+        // Add some explicit height based on platform if needed, e.g.:
+        // height: Platform.OS === 'ios' ? 200 : 50, 
     },
     // Chart Specific Styles
     chartVisualizerContainer: {
