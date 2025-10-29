@@ -25,7 +25,7 @@ import {
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage'; // RN equivalent of localStorage
-
+import * as DocumentPicker from 'expo-document-picker';
 
 // --- Helper Function: File Size Formatting ---
 const formatFileSize = (bytes) => {
@@ -45,39 +45,80 @@ const useRNFilePicker = (setSelectedFile, setError) => {
     // This ref is only used to simulate state reset, not actual DOM manipulation.
     const fileInputRef = useRef(null); 
 
-    const handleUploadClick = () => {
+    const handleUploadClick = async () => {
         // --- START PLACEHOLDER ---
-        Alert.alert(
-            "File Picker Simulation",
-            "In a real app, a native file picker would open here.\n\nWe will simulate a file selection for demo purposes.",
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Simulate PDF Select",
-                    onPress: () => {
-                        const simulatedFile = {
-                            name: "my_awesome_resume.pdf",
-                            type: "application/pdf",
-                            size: 1500000, // 1.5MB
-                            uri: "file://path/to/resume.pdf" // Native URI
-                        };
-                        
-                        setSelectedFile(simulatedFile);
-                        setError(null);
-                    }
+        // --- NATIVE FILE PICKER LOGIC ---
+        try {
+            const result = await DocumentPicker.getDocumentAsync({
+                type: [
+                    'application/pdf',
+                    'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // DOCX
+                ],
+                copyToCacheDirectory: false, // Optional: Usually true, but false might save space if you only need the URI briefly
+            });
+
+            console.log("Document Picker Result:", result); // Log the result for debugging
+
+            // Check the structure of the result (might vary slightly)
+            if (result.type === 'success' || (result.assets && result.assets.length > 0)) {
+                // Expo SDK 48+ uses assets array
+                const fileAsset = result.assets ? result.assets[0] : result; 
+
+                if (!fileAsset || !fileAsset.uri) {
+                     setError("File selection failed: No file URI found.");
+                     setSelectedFile(null);
+                     return;
                 }
-            ]
-        );
-        // --- END PLACEHOLDER ---
+
+                // Basic size check (fileAsset.size might be null/undefined sometimes)
+                if (fileAsset.size && fileAsset.size > 5 * 1024 * 1024) { // 5MB limit
+                     setError('File size exceeds 5MB limit.');
+                     setSelectedFile(null);
+                     return;
+                }
+
+                // Construct the file object needed for upload
+                const selected = {
+                    uri: fileAsset.uri,
+                    name: fileAsset.name || 'resume.pdf', // Use provided name or default
+                    type: fileAsset.mimeType || 'application/pdf', // Use mimeType or default
+                    size: fileAsset.size, 
+                };
+
+                setSelectedFile(selected);
+                setError(null);
+                setAnalysisResult(null); // Reset analysis on new file select
+
+            } else if (result.type === 'cancel') {
+                // User cancelled the picker - do nothing or provide feedback
+                console.log("File selection cancelled");
+            } else {
+                 setError("File selection failed unexpectedly.");
+                 setSelectedFile(null);
+            }
+
+        } catch (err) {
+            console.error("Document Picker Error:", err);
+            // Handle specific errors if needed (e.g., permissions)
+            if (DocumentPicker.isCancel(err)) {
+                 console.log("User cancelled document picker");
+            } else {
+                 setError('An error occurred while picking the file.');
+                 setSelectedFile(null);
+                 // Rethrow or handle error appropriately
+                 // throw err; 
+            }
+        }
+        // --- END NATIVE LOGIC ---
     };
 
     const handleRemoveFile = () => {
         setSelectedFile(null);
         setError(null);
         // Optional: Resetting value property of file input is not necessary in RN
-        if (fileInputRef.current) {
+       // if (fileInputRef.current) {
             // Placeholder for any state cleanup if needed
-        }
+       // }
     };
     
     return { fileInputRef, handleUploadClick, handleRemoveFile };
@@ -286,18 +327,9 @@ export default function ResumeAnalyzer() {
 
         {!selectedFile ? (
             <View style={styles.uploadSection}>
-                <Pressable 
+              <Pressable 
                     style={styles.uploadBox} 
-                    onPress={() => {
-                        if (Platform.OS === 'web' && fileInputRef.current) {
-                            // 2. Web: Trigger the hidden HTML input click
-                            fileInputRef.current.click();
-                        } else {
-                            // Mobile: Trigger the RN/simulated file picker
-                            // (You must replace this Alert with a real document picker library)
-                            Alert.alert("File Picker Required", "Please integrate a library like react-native-document-picker for native file uploads.");
-                        }
-                    }}
+                    onPress={handleUploadClick} // 👈 Simply call the hook's function
                 >
                     <UploadCloud size={40} color="#4f46e5" />
                     <Text style={styles.uploadText}>Click to Upload Resume</Text>
