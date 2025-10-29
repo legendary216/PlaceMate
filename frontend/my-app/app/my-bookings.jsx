@@ -1,189 +1,411 @@
 import React, { useState, useEffect } from 'react';
-// Import Trash2 instead of XCircle
-import { ArrowLeft, Loader2, Calendar, Clock, RefreshCw, Link2, Hourglass, Trash2 } from 'lucide-react';
+import {
+  SafeAreaView,
+  ScrollView,
+  View,
+  Text,
+  Pressable,
+  Image,
+  StyleSheet,
+  ActivityIndicator,
+  Alert,
+  Linking, // For opening meeting links
+} from 'react-native';
+import {
+  ArrowLeft,
+  Loader2,
+  Calendar,
+  Clock,
+  RefreshCw,
+  Link2,
+  Hourglass,
+  Trash2,
+  PackageX, // Used for empty state
+} from 'lucide-react-native';
 import { useRouter } from 'expo-router';
-import dayjs from 'dayjs';
+import dayjs from 'dayjs'; // Make sure to run: npx expo install dayjs
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function MyBookings() {
   const router = useRouter();
   const [bookings, setBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
-  const [cancelLoading, setCancelLoading] = useState(null);
+  const [cancelLoading, setCancelLoading] = useState(null); // Tracks which booking is being cancelled
 
   useEffect(() => {
     fetchBookings();
   }, []);
 
   const fetchBookings = async () => {
-    // ... (fetchBookings function remains the same) ...
-        setIsLoading(true);
-        setFetchError(null);
-        const token = localStorage.getItem("token");
-        try {
-          const res = await fetch("https://placemate-ru7v.onrender.com/api/bookings/my-schedule-student", {
-            headers: { "Authorization": `Bearer ${token}` }
-          });
-          if (!res.ok) {
-            const errData = await res.json();
-            throw new Error(errData.message || "Could not fetch bookings.");
-          }
-          const data = await res.json();
-          setBookings(data);
-        } catch (err) {
-          setFetchError(err.message);
-        } finally {
-          setIsLoading(false);
+    setIsLoading(true);
+    setFetchError(null);
+    const token = await AsyncStorage.getItem('token');
+    try {
+      const res = await fetch(
+        'https://placemate-ru7v.onrender.com/api/bookings/my-schedule-student',
+        {
+          headers: { Authorization: `Bearer ${token}` },
         }
+      );
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.message || 'Could not fetch bookings.');
+      }
+      const data = await res.json();
+      setBookings(data);
+    } catch (err) {
+      setFetchError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCancelByStudent = async (bookingId, status) => {
-    // ... (handleCancelByStudent function remains the same) ...
-       const confirmMessage = status === 'pending_mentor_approval'
-           ? "Are you sure you want to cancel this booking request?"
-           : "Are you sure you want to cancel this confirmed session?";
-       if (!window.confirm(confirmMessage)) return;
+    const confirmMessage =
+      status === 'pending_mentor_approval'
+        ? 'Are you sure you want to cancel this booking request?'
+        : 'Are you sure you want to cancel this confirmed session?';
 
-       setCancelLoading(bookingId);
-       const token = localStorage.getItem("token");
-       try {
-           const res = await fetch(`https://placemate-ru7v.onrender.com/api/bookings/cancel/student/${bookingId}`, {
-               method: "PATCH",
-               headers: { "Authorization": `Bearer ${token}` }
-           });
-           if (!res.ok) throw new Error("Failed to cancel booking.");
-           alert("Booking cancelled successfully.");
-           fetchBookings(); // Refresh the booking list
-       } catch (err) {
-           alert(err.message);
-       } finally {
-           setCancelLoading(null);
-       }
+    // Use React Native Alert API
+    Alert.alert('Confirm Cancellation', confirmMessage, [
+      { text: 'No', style: 'cancel' },
+      {
+        text: 'Yes, Cancel',
+        style: 'destructive',
+        onPress: async () => {
+          setCancelLoading(bookingId);
+          const token = await AsyncStorage.getItem('token');
+          try {
+            const res = await fetch(
+              `https://placemate-ru7v.onrender.com/api/bookings/cancel/student/${bookingId}`,
+              {
+                method: 'PATCH',
+                headers: { Authorization: `Bearer ${token}` },
+              }
+            );
+            if (!res.ok) throw new Error('Failed to cancel booking.');
+            Alert.alert('Success', 'Booking cancelled successfully.');
+            fetchBookings(); // Refresh the booking list
+          } catch (err) {
+            Alert.alert('Error', err.message);
+          } finally {
+            setCancelLoading(null);
+          }
+        },
+      },
+    ]);
   };
 
   const renderContent = () => {
-    if (isLoading) { /* ... loading ... */ }
-    if (fetchError) { /* ... error ... */ }
-    if (bookings.length === 0) { /* ... empty state ... */ }
-    return (
-      <div className="item-list">
-        {bookings.map(booking => (
-          <div key={booking._id} className={`list-item booking-item status-${booking.status}`}>
-            <img /* ... avatar ... */
-                src={booking.mentor.profilePic || 'https://t4.ftcdn.net/jpg/02/15/84/43/360_F_215844325_ttX9YiIIyeaR7Ne6EaLLjMAmy4GvPC69.jpg'}
-                alt={`${booking.mentor.fullName} profile`}
-                className="item-avatar"
-             />
-            <div className="item-info">
-              {/* ... name, detail, date, time ... */}
-               <p className="item-name">{booking.mentor.fullName}</p>
-               <p className="item-detail">{booking.mentor.jobTitle} at {booking.mentor.company}</p>
-               <p className="item-date">{dayjs(booking.startTime).format('dddd, MMMM D, YYYY')}</p>
-               <p className="item-time">
-                <Clock size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
-                {dayjs(booking.startTime).format('h:mm A')} - {dayjs(booking.endTime).format('h:mm A')}
-              </p>
+    if (isLoading) {
+      return (
+        <View style={styles.infoContainer}>
+          <ActivityIndicator size="large" color="#4f46e5" />
+          <Text style={styles.infoText}>Loading bookings...</Text>
+        </View>
+      );
+    }
 
-              {/* Status and Link rendering (unchanged) */}
-              {booking.status === 'pending_mentor_approval' && ( /* ... pending status ... */
-                    <p className="item-status pending">
-                      <Hourglass size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }}/>
-                      Pending Mentor Approval
-                  </p>
+    if (fetchError) {
+      return (
+        <View style={styles.infoContainer}>
+          <AlertTriangle size={40} color="#ef4444" />
+          <Text style={styles.errorText}>{fetchError}</Text>
+        </View>
+      );
+    }
+
+    if (bookings.length === 0) {
+      return (
+        <View style={[styles.infoContainer, styles.emptyState]}>
+          <PackageX size={48} color="#6b7280" />
+          <Text style={styles.emptyTitle}>No Sessions Found</Text>
+          <Text style={styles.emptySubtitle}>
+            You haven't booked any sessions yet.
+          </Text>
+          <Pressable
+            style={styles.findMentorBtn}
+            onPress={() => router.push('/mentorconnect')}
+          >
+            <Text style={styles.findMentorBtnText}>Find a Mentor</Text>
+          </Pressable>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.itemList}>
+        {bookings.map((booking) => (
+          <View key={booking._id} style={styles.listItem}>
+            <Image
+              source={{
+                uri:
+                  booking.mentor.profilePic ||
+                  'https://t4.ftcdn.net/jpg/02/15/84/43/360_F_215844325_ttX9YiIIyeaR7Ne6EaLLjMAmy4GvPC69.jpg',
+              }}
+              style={styles.itemAvatar}
+            />
+            <View style={styles.itemInfo}>
+              <Text style={styles.itemName}>{booking.mentor.fullName}</Text>
+              <Text style={styles.itemDetail}>
+                {booking.mentor.jobTitle} at {booking.mentor.company}
+              </Text>
+              <Text style={styles.itemDate}>
+                {dayjs(booking.startTime).format('dddd, MMMM D, YYYY')}
+              </Text>
+              <Text style={styles.itemTime}>
+                <Clock size={14} color="#4f46e5" />
+                {' '}
+                {dayjs(booking.startTime).format('h:mm A')} -{' '}
+                {dayjs(booking.endTime).format('h:mm A')}
+              </Text>
+
+              {/* Status and Link rendering */}
+              {booking.status === 'pending_mentor_approval' && (
+                <Text style={styles.statusPending}>
+                  <Hourglass size={14} color="#d97706" />
+                  {' '}Pending Mentor Approval
+                </Text>
               )}
-              {booking.status === 'confirmed' && ( /* ... confirmed status and link ... */
-                    <div className="item-status confirmed">
-                     <p style={{ margin: '0.5rem 0 0.25rem 0', fontWeight: 500 }}>Status: Confirmed</p>
-                     {booking.meetingLink ? (
-                         <a href={booking.meetingLink} target="_blank" rel="noopener noreferrer" className="meeting-link">
-                             <Link2 size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }}/>
-                             Join Meeting
-                         </a>
-                     ) : (
-                         <p className="no-link-text">Mentor will provide meeting link.</p>
-                     )}
-                  </div>
+              {booking.status === 'confirmed' && (
+                <View style={styles.statusConfirmed}>
+                  <Text style={{ fontWeight: '500', color: '#059669', marginBottom: 4 }}>
+                    Status: Confirmed
+                  </Text>
+                  {booking.meetingLink ? (
+                    <Pressable onPress={() => Linking.openURL(booking.meetingLink)}>
+                      <Text style={styles.meetingLink}>
+                        <Link2 size={14} color="#4f46e5" />
+                        {' '}Join Meeting
+                      </Text>
+                    </Pressable>
+                  ) : (
+                    <Text style={styles.noLinkText}>
+                      Mentor will provide meeting link.
+                    </Text>
+                  )}
+                </View>
               )}
-            </div>
-            {(booking.status === 'pending_mentor_approval' || booking.status === 'confirmed') && (
-              <div className="item-actions">
-                <button
-                  className="button-cancel-booking"
-                  onClick={() => handleCancelByStudent(booking._id, booking.status)}
+            </View>
+            {(booking.status === 'pending_mentor_approval' ||
+              booking.status === 'confirmed') && (
+              <View style={styles.itemActions}>
+                <Pressable
+                  style={styles.buttonCancelBooking}
+                  onPress={() => handleCancelByStudent(booking._id, booking.status)}
                   disabled={cancelLoading === booking._id}
-                  title="Cancel Booking"
                 >
-                  {/* --- CHANGE ICON HERE --- */}
-                  {cancelLoading === booking._id ? <Loader2 size={18} className="spinner" /> : <Trash2 size={18} />}
-                  {/* --- END ICON CHANGE --- */}
-                </button>
-              </div>
+                  {cancelLoading === booking._id ? (
+                    <ActivityIndicator size="small" color="#991b1b" />
+                  ) : (
+                    <Trash2 size={18} color="#991b1b" />
+                  )}
+                </Pressable>
+              </View>
             )}
-          </div>
+          </View>
         ))}
-      </div>
+      </View>
     );
   };
 
-
   return (
-    <>
-      <style>{`
-        /* --- Styles (No changes needed here if .button-cancel-booking styles are okay) --- */
-        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafe; }
-        .page-container { display: flex; flex-direction: column; min-height: 100vh; overflow-y: auto; }
-        .header-container { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; background-color: #fff; border-bottom: 1px solid #e5e7eb; }
-        .header-left { display: flex; align-items: center; gap: 1rem; }
-        .back-button { padding: 0.5rem; background-color: #eef2ff; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .header-title { font-size: 1.75rem; font-weight: 700; color: #111827; margin: 0; }
-        .icon-button { padding: 0.5rem; background-color: #eef2ff; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .main-content { padding: 2rem 1.5rem; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; }
-        .item-list { display: flex; flex-direction: column; gap: 1rem; }
-        .list-item { display: flex; align-items: flex-start; gap: 1rem; background-color: #fff; border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 1.5rem; }
-        .item-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-        .item-info { flex-grow: 1; }
-        .item-name { font-weight: 600; font-size: 1.15rem; color: #1f2937; margin: 0 0 0.25rem 0; }
-        .item-detail { color: #4b5563; margin: 0 0 0.5rem 0; font-size: 0.9rem; }
-        .item-date { font-weight: 500; color: #374151; margin: 0.5rem 0 0.25rem 0; font-size: 0.95rem; }
-        .item-time { color: #4f46e5; margin: 0; font-size: 0.95rem; font-weight: 500; }
-        .item-status { font-size: 0.9rem; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid #f3f4f6; }
-        .item-status.pending { color: #d97706; font-weight: 500; }
-        .item-status.confirmed { color: #059669; }
-        .meeting-link { color: #4f46e5; text-decoration: none; font-weight: 500; display: inline-block; margin-top: 0.25rem;}
-        .meeting-link:hover { text-decoration: underline; }
-        .no-link-text { font-size: 0.85rem; color: #6b7280; font-style: italic; margin: 0.25rem 0 0 0; }
-        .item-actions { margin-left: auto; padding-left: 1rem; flex-shrink: 0; }
-        .button-cancel-booking { display: flex; align-items: center; justify-content: center; background-color: #fee2e2; color: #991b1b; border: none; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; transition: background-color 0.2s; }
-        .button-cancel-booking:hover { background-color: #fecaca; }
-        .button-cancel-booking:disabled { opacity: 0.7; cursor: not-allowed; }
-        .info-text, .error-text { text-align: center; color: #6b7280; font-size: 1rem; padding: 2rem 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; }
-        .error-text { color: #ef4444; font-weight: 500; }
-        .empty-state { padding: 3rem; background-color: #fff; border-radius: 8px; border: 1px dashed #d1d5db;}
-        .empty-title { margin: 1rem 0 0.5rem 0; font-weight: 600; color: #374151;}
-        .empty-subtitle { margin: 0 0 1.5rem 0; max-width: 300px; color: #6b7280; font-size: 0.9rem;}
-        .find-mentor-btn { background-color: #4f46e5; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.95rem; }
-        .spinner { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
+    <SafeAreaView style={styles.pageContainer}>
+      <View style={styles.headerContainer}>
+        <View style={styles.headerLeft}>
+          <Pressable onPress={() => router.back()} style={styles.backButton}>
+            <ArrowLeft size={24} color="#4f46e5" />
+          </Pressable>
+          <Text style={styles.headerTitle}>My Upcoming Sessions</Text>
+        </View>
+        <Pressable onPress={fetchBookings} style={styles.iconButton}>
+          <RefreshCw size={20} color="#4f46e5" />
+        </Pressable>
+      </View>
 
-      <div className="page-container">
-        <header className="header-container">
-          {/* ... header ... */}
-           <div className="header-left">
-            <button onClick={() => router.back()} className="back-button" title="Back">
-              <ArrowLeft size={24} color="#4f46e5" />
-            </button>
-            <h1 className="header-title">My Upcoming Sessions</h1>
-          </div>
-           <button onClick={fetchBookings} className="icon-button" title="Refresh Bookings">
-             <RefreshCw size={20} color="#4f46e5" />
-           </button>
-        </header>
-
-        <main className="main-content">
-          {renderContent()}
-        </main>
-      </div>
-    </>
+      <ScrollView contentContainerStyle={styles.mainContent}>
+        {renderContent()}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
+
+// Converted StyleSheet
+const styles = StyleSheet.create({
+  pageContainer: {
+    flex: 1,
+    backgroundColor: '#f9fafe',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  backButton: {
+    padding: 8,
+    backgroundColor: '#eef2ff',
+    borderRadius: 20,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  iconButton: {
+    padding: 8,
+    backgroundColor: '#eef2ff',
+    borderRadius: 20,
+  },
+  mainContent: {
+    padding: 16,
+  },
+  itemList: {
+    gap: 16,
+  },
+  listItem: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 16,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    padding: 16,
+  },
+  itemAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    flexShrink: 0,
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  itemName: {
+    fontWeight: '600',
+    fontSize: 18,
+    color: '#1f2937',
+    marginBottom: 4,
+  },
+  itemDetail: {
+    color: '#4b5563',
+    marginBottom: 8,
+    fontSize: 14,
+  },
+  itemDate: {
+    fontWeight: '500',
+    color: '#374151',
+    marginVertical: 4,
+    fontSize: 15,
+  },
+  itemTime: {
+    color: '#4f46e5',
+    fontSize: 15,
+    fontWeight: '500',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  statusPending: {
+    fontSize: 14,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+    color: '#d97706',
+    fontWeight: '500',
+  },
+  statusConfirmed: {
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#f3f4f6',
+  },
+  meetingLink: {
+    color: '#4f46e5',
+    fontWeight: '500',
+    marginTop: 4,
+  },
+  noLinkText: {
+    fontSize: 13,
+    color: '#6b7280',
+    fontStyle: 'italic',
+    marginTop: 4,
+  },
+  itemActions: {
+    marginLeft: 'auto',
+    paddingLeft: 16,
+    flexShrink: 0,
+  },
+  buttonCancelBooking: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fee2e2',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  infoContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+    minHeight: 300,
+  },
+  infoText: {
+    color: '#6b7280',
+    fontSize: 16,
+    marginTop: 8,
+  },
+  errorText: {
+    textAlign: 'center',
+    color: '#ef4444',
+    fontWeight: '500',
+    fontSize: 16,
+    marginTop: 8,
+  },
+  emptyState: {
+    padding: 24,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    borderColor: '#d1d5db',
+  },
+  emptyTitle: {
+    marginTop: 16,
+    marginBottom: 8,
+    fontWeight: '600',
+    color: '#374151',
+    fontSize: 18,
+  },
+  emptySubtitle: {
+    marginBottom: 24,
+    maxWidth: 300,
+    color: '#6b7280',
+    fontSize: 14,
+    textAlign: 'center',
+  },
+  findMentorBtn: {
+    backgroundColor: '#4f46e5',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  findMentorBtnText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+});

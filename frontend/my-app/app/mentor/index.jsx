@@ -1,406 +1,690 @@
-import React, { useState, useEffect } from "react";
-import { LogOut, Loader2, Check, X, Users, RefreshCw, Calendar, Clock, Link2 ,XCircle} from 'lucide-react'; // Added Link2
-import { useRouter } from "expo-router";
-import dayjs from 'dayjs';
+  import React, { useState, useEffect } from "react";
+  import {
+    SafeAreaView,
+    ScrollView,
+    View,
+    Text,
+    Pressable,
+    StyleSheet,
+    ActivityIndicator,
+    Modal,
+    TextInput,
+    Alert,
+    Linking, // For opening meeting links (not used here, but good practice)
+  } from 'react-native';
+  import { LogOut, Loader2, Check, X, Users, RefreshCw, Calendar, Clock, Link2, XCircle, ArrowLeft } from 'lucide-react-native';
+  import { useRouter, Link } from "expo-router";
+  import dayjs from 'dayjs';
+  import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function MentorHome() {
-  // State for Connection Requests
-  const [requests, setRequests] = useState([]);
-  const [isLoadingRequests, setIsLoadingRequests] = useState(true);
-  const [fetchRequestsError, setFetchRequestsError] = useState(null);
+  export default function MentorHome() {
+    // State for Connection Requests
+    const [requests, setRequests] = useState([]);
+    const [isLoadingRequests, setIsLoadingRequests] = useState(true);
+    const [fetchRequestsError, setFetchRequestsError] = useState(null);
 
-  // State for Schedule
-  const [schedule, setSchedule] = useState([]);
-  const [isLoadingSchedule, setIsLoadingSchedule] = useState(true);
-  const [fetchScheduleError, setFetchScheduleError] = useState(null);
+    // State for Schedule
+    const [schedule, setSchedule] = useState([]);
+    const [isLoadingSchedule, setIsLoadingSchedule] = useState(true);
+    const [fetchScheduleError, setFetchScheduleError] = useState(null);
 
-  // --- NEW STATE FOR PENDING BOOKINGS ---
-  const [pendingBookings, setPendingBookings] = useState([]);
-  const [isLoadingPendingBookings, setIsLoadingPendingBookings] = useState(true);
-  const [fetchPendingBookingsError, setFetchPendingBookingsError] = useState(null);
-  const [showAcceptModal, setShowAcceptModal] = useState(false);
-  const [currentBookingToAccept, setCurrentBookingToAccept] = useState(null); // Stores { _id, studentName, time }
-  const [meetingLink, setMeetingLink] = useState('');
-  const [isConfirmingBooking, setIsConfirmingBooking] = useState(false);
-  const [cancelLoading, setCancelLoading] = useState(null);
-  // ---
+    // State for Pending Bookings
+    const [pendingBookings, setPendingBookings] = useState([]);
+    const [isLoadingPendingBookings, setIsLoadingPendingBookings] = useState(true);
+    const [fetchPendingBookingsError, setFetchPendingBookingsError] = useState(null);
+    const [showAcceptModal, setShowAcceptModal] = useState(false);
+    const [currentBookingToAccept, setCurrentBookingToAccept] = useState(null); // Stores { _id, studentName, time }
+    const [meetingLink, setMeetingLink] = useState('');
+    const [isConfirmingBooking, setIsConfirmingBooking] = useState(false);
+    const [cancelLoading, setCancelLoading] = useState(null);
 
-  const [user, setUser] = useState(null);
-  const [actionLoading, setActionLoading] = useState(null); // For connection requests accept/reject
-  const router = useRouter();
+    const [user, setUser] = useState(null);
+    const [actionLoading, setActionLoading] = useState(null); // For connection requests accept/reject
+    const router = useRouter();
 
-  // Fetch all initial data
-  useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    fetchAllData();
-  }, []);
-
-  const fetchAllData = () => {
-    fetchRequests();
-    fetchSchedule();
-    fetchPendingBookings(); // Fetch pending bookings as well
-  };
-
-  // --- Fetch Connection Requests ---
-  const fetchRequests = async () => {
-    setIsLoadingRequests(true);
-    setFetchRequestsError(null);
-    const token = localStorage.getItem("token");
-    try {
-      const res = await fetch("https://placemate-ru7v.onrender.com/api/connections/my-requests", { headers: { "Authorization": `Bearer ${token}` } });
-      if (!res.ok) throw new Error("Could not fetch connection requests.");
-      const data = await res.json();
-      setRequests(data);
-    } catch (err) { setFetchRequestsError(err.message); } finally { setIsLoadingRequests(false); }
-  };
-
-  // --- Fetch Confirmed Schedule ---
-  const fetchSchedule = async () => {
-    setIsLoadingSchedule(true);
-    setFetchScheduleError(null);
-    const token = localStorage.getItem("token");
-    try {
-      const res = await fetch("https://placemate-ru7v.onrender.com/api/bookings/my-schedule", { headers: { "Authorization": `Bearer ${token}` } });
-      if (!res.ok) throw new Error("Could not fetch schedule.");
-      const data = await res.json();
-      setSchedule(data);
-    } catch (err) { setFetchScheduleError(err.message); } finally { setIsLoadingSchedule(false); }
-  };
-
-  // --- NEW: Fetch Pending Booking Requests ---
-  const fetchPendingBookings = async () => {
-    setIsLoadingPendingBookings(true);
-    setFetchPendingBookingsError(null);
-    const token = localStorage.getItem("token");
-    try {
-      const res = await fetch("https://placemate-ru7v.onrender.com/api/bookings/my-pending-requests", { headers: { "Authorization": `Bearer ${token}` } });
-      if (!res.ok) throw new Error("Could not fetch pending booking requests.");
-      const data = await res.json();
-      setPendingBookings(data);
-    } catch (err) { setFetchPendingBookingsError(err.message); } finally { setIsLoadingPendingBookings(false); }
-  };
-
-  // --- Handle Connection Request Response ---
-  const handleConnectionResponse = async (requestId, newStatus) => {
-    setActionLoading(requestId);
-    const token = localStorage.getItem("token");
-    try {
-      const res = await fetch(`https://placemate-ru7v.onrender.com/api/connections/respond/${requestId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ status: newStatus })
-      });
-      if (!res.ok) throw new Error("Action failed.");
-      setRequests(prev => prev.filter(req => req._id !== requestId));
-      alert(`Connection request ${newStatus}!`);
-      // No need to refresh schedule here, only connection status changed
-    } catch (err) { alert(err.message); } finally { setActionLoading(null); }
-  };
-
-  // --- NEW: Open Accept Modal ---
-  const handleAcceptBooking = (booking) => {
-    setCurrentBookingToAccept({
-      _id: booking._id,
-      studentName: booking.student.name,
-      time: dayjs(booking.startTime).format('ddd, MMM D, h:mm A')
-    });
-    setMeetingLink(''); // Clear previous link
-    setShowAcceptModal(true);
-  };
-
-  // --- NEW: Submit Booking Confirmation ---
-  const submitAcceptBooking = async () => {
-    if (!meetingLink.trim() || !currentBookingToAccept) return;
-    setIsConfirmingBooking(true);
-    const token = localStorage.getItem("token");
-    try {
-      const res = await fetch(`https://placemate-ru7v.onrender.com/api/bookings/confirm/${currentBookingToAccept._id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ meetingLink: meetingLink.trim() })
-      });
-       const data = await res.json(); // Read response body even on error
-      if (!res.ok) {
-           throw new Error(data.message || "Failed to confirm booking.");
-      }
-      setShowAcceptModal(false);
-      setCurrentBookingToAccept(null);
-      alert("Booking confirmed and student notified!");
-      fetchAllData(); // Refresh all lists
-    } catch (err) {
-      alert(`Error: ${err.message}`); // Show specific error from backend
-    } finally {
-      setIsConfirmingBooking(false);
-    }
-  };
-
-  // --- NEW: Handle Booking Rejection ---
-   const handleRejectBooking = async (bookingId) => {
-       if (!window.confirm("Are you sure you want to reject this booking request?")) return;
-       // We can reuse actionLoading state here, maybe rename it if confusing
-       setActionLoading(bookingId); // Show spinner on the specific item's button
-       const token = localStorage.getItem("token");
-       try {
-           const res = await fetch(`https://placemate-ru7v.onrender.com/api/bookings/reject/${bookingId}`, {
-               method: "PATCH",
-               headers: { "Authorization": `Bearer ${token}` }
-           });
-           if (!res.ok) throw new Error("Failed to reject booking.");
-           alert("Booking request rejected.");
-           fetchPendingBookings(); // Only refresh pending list
-       } catch (err) {
-           alert(err.message);
-       } finally {
-           setActionLoading(null); // Clear spinner
-       }
-   };
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    window.location.href = "/";
-  };
-
-
-
-  const handleCancelByMentor = async (bookingId) => {
-       if (!window.confirm("Are you sure you want to cancel this scheduled session?")) return;
-       setCancelLoading(bookingId); // Show spinner on cancel button
-       const token = localStorage.getItem("token");
-       try {
-           const res = await fetch(`https://placemate-ru7v.onrender.com/api/bookings/cancel/mentor/${bookingId}`, {
-               method: "PATCH",
-               headers: { "Authorization": `Bearer ${token}` }
-           });
-           if (!res.ok) throw new Error("Failed to cancel booking.");
-           alert("Booking cancelled successfully.");
-           fetchSchedule(); // Refresh the schedule list
-       } catch (err) {
-           alert(err.message);
-       } finally {
-           setCancelLoading(null); // Clear spinner
-       }
-   };
-
-  // --- Rendering Functions (requests, schedule) ---
-  const renderRequests = () => { /* ... unchanged ... */
-      if (isLoadingRequests) { return <p className="info-text"><Loader2 size={24} className="spinner" /> Loading requests...</p>; }
-      if (fetchRequestsError) { return <p className="error-text">{fetchRequestsError}</p>; }
-      if (requests.length === 0) { return (<div className="info-text empty-state"><Users size={40} color="#6b7280" /><h3 className="empty-title">All Caught Up!</h3><p className="empty-subtitle">You have no new connection requests.</p></div>); }
-      return (<div className="item-list">{requests.map(req => (<div key={req._id} className="list-item request-item"><div className="item-info"><p className="item-name">{req.student.name}</p><p className="item-email">{req.student.email}</p></div><div className="item-actions"><button className="button-reject" onClick={() => handleConnectionResponse(req._id, 'rejected')} disabled={actionLoading === req._id}>{actionLoading === req._id ? <Loader2 size={18} className="spinner" /> : <X size={18} />}</button><button className="button-approve" onClick={() => handleConnectionResponse(req._id, 'accepted')} disabled={actionLoading === req._id}>{actionLoading === req._id ? <Loader2 size={18} className="spinner" /> : <Check size={18} />}</button></div></div>))}</div>);
-  };
-  const renderSchedule = () => { /* ... unchanged ... */
-      if (isLoadingSchedule) { return <p className="info-text"><Loader2 size={24} className="spinner" /> Loading schedule...</p>; }
-      if (fetchScheduleError) { return <p className="error-text">{fetchScheduleError}</p>; }
-      if (schedule.length === 0) { return (<div className="info-text empty-state"><Calendar size={40} color="#6b7280" /><h3 className="empty-title">No Upcoming Sessions</h3><p className="empty-subtitle">Your schedule is clear for now.</p></div>); }
-      return (<div className="item-list">{schedule.map(booking => (<div key={booking._id} className="list-item schedule-item"><div className="item-info"><p className="item-name">{booking.student.name}</p><p className="item-email">{dayjs(booking.startTime).format('ddd, MMM D, YYYY')}</p><p className="item-time"><Clock size={14} style={{verticalAlign: 'middle', marginRight: '4px'}}/>{dayjs(booking.startTime).format('h:mm A')} - {dayjs(booking.endTime).format('h:mm A')}</p></div>{/* --- ADD CANCEL BUTTON --- */}
-                    <div className="item-actions">
-                         <button
-                            className="button-cancel-schedule"
-                            onClick={() => handleCancelByMentor(booking._id)}
-                            disabled={cancelLoading === booking._id}
-                            title="Cancel Session"
-                         >
-                            {cancelLoading === booking._id ? <Loader2 size={18} className="spinner"/> : <XCircle size={18} />}
-                         </button>
-                    </div>
-                    {/* --- END CANCEL BUTTON --- */}
-                    </div>))}</div>);
-  };
-
-  // --- NEW: Render Pending Booking Requests ---
-   const renderPendingBookings = () => {
-       if (isLoadingPendingBookings) {
-           return <p className="info-text"><Loader2 size={24} className="spinner" /> Loading booking requests...</p>;
-       }
-       if (fetchPendingBookingsError) {
-           return <p className="error-text">{fetchPendingBookingsError}</p>;
-       }
-       if (pendingBookings.length === 0) {
-           return (
-               <div className="info-text empty-state">
-                   <Clock size={40} color="#6b7280" />
-                   <h3 className="empty-title">No Pending Bookings</h3>
-                   <p className="empty-subtitle">You have no booking requests waiting for approval.</p>
-               </div>
-           );
-       }
-       return (
-           <div className="item-list">
-               {pendingBookings.map(booking => (
-                   <div key={booking._id} className="list-item request-item"> {/* Can reuse request-item style */}
-                       <div className="item-info">
-                           <p className="item-name">{booking.student.name}</p>
-                           <p className="item-email">{dayjs(booking.startTime).format('ddd, MMM D, h:mm A')}</p>
-                       </div>
-                       <div className="item-actions">
-                           <button
-                               className="button-reject"
-                               onClick={() => handleRejectBooking(booking._id)}
-                               disabled={actionLoading === booking._id} // Reuse actionLoading
-                               title="Reject Booking"
-                           >
-                              {actionLoading === booking._id ? <Loader2 size={18} className="spinner" /> : <X size={18} />}
-                           </button>
-                           <button
-                               className="button-approve"
-                               onClick={() => handleAcceptBooking(booking)} // Pass full booking object
-                               disabled={actionLoading === booking._id}
-                               title="Accept Booking"
-                           >
-                               <Check size={18} /> {/* No spinner here, modal handles it */}
-                           </button>
-                       </div>
-                   </div>
-               ))}
-           </div>
-       );
-   };
-
-
-  return (
-    <>
-      <style>{`
-        /* --- Styles (Add Modal Styles) --- */
-        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafe; }
-        .page-container { display: flex; flex-direction: column; min-height: 100vh; overflow-y: auto; }
-        .header-container { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; background-color: #fff; border-bottom: 1px solid #e5e7eb; }
-        .header-left { display: flex; flex-direction: column; }
-        .header-title { font-size: 1.75rem; font-weight: 700; color: #111827; margin: 0; }
-        .header-subtitle { font-size: 1rem; color: #4b5563; margin: 0; }
-        .header-right { display: flex; gap: 1rem; }
-        .icon-button { padding: 0.5rem; background-color: #eef2ff; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .main-content { padding: 2rem 1.5rem; max-width: 1200px; /* Wider for 3 columns potentially */ margin: 0 auto; width: 100%; box-sizing: border-box; display: grid; grid-template-columns: 1fr; gap: 2rem;}
-        @media (min-width: 1024px) { .main-content { grid-template-columns: repeat(3, 1fr); } } /* 3 columns on large screens */
-        @media (min-width: 640px) and (max-width: 1023px) { .main-content { grid-template-columns: repeat(2, 1fr); } } /* 2 columns on medium screens */
-
-        .section { display: flex; flex-direction: column; }
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-        .section-title { font-size: 1.25rem; font-weight: 600; color: #1f2937; margin: 0; }
-        .item-list { display: flex; flex-direction: column; gap: 1rem; }
-        .list-item { display: flex; justify-content: space-between; align-items: center; background-color: #fff; border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 1rem 1.5rem; flex-wrap: wrap; gap: 1rem; }
-        .item-info { flex-grow: 1; overflow: hidden; } /* Added overflow hidden */
-        .item-name { font-weight: 600; color: #1f2937; margin: 0; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; /* Prevent long names breaking layout */}
-        .item-email { color: #4b5563; margin: 0.25rem 0 0 0; font-size: 0.9rem; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; /* Prevent long emails breaking layout */ }
-        .item-time { color: #4f46e5; margin: 0.25rem 0 0 0; font-size: 0.9rem; font-weight: 500; }
-        .item-actions { display: flex; gap: 0.75rem; }
-        .button-approve, .button-reject { display: flex; align-items: center; justify-content: center; padding: 0.5rem; width: 40px; height: 40px; border: none; border-radius: 50%; cursor: pointer; font-weight: 600; transition: background-color 0.2s; }
-        .button-approve { background-color: #dcfce7; color: #166534; }
-        .button-approve:hover { background-color: #bbf7d0; }
-        .button-reject { background-color: #fee2e2; color: #991b1b; }
-        .button-reject:hover { background-color: #fecaca; }
-        .button-approve:disabled, .button-reject:disabled { opacity: 0.7; cursor: not-allowed; }
-        .info-text, .error-text { text-align: center; color: #6b7280; font-size: 1rem; padding: 2rem 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; }
-        .error-text { color: #ef4444; font-weight: 500; }
-        .empty-state { padding: 3rem; background-color: #fff; border-radius: 8px; border: 1px dashed #d1d5db;}
-        .empty-title { margin: 1rem 0 0.5rem 0; font-weight: 600; color: #374151;}
-        .empty-subtitle { margin: 0; max-width: 300px; color: #6b7280; font-size: 0.9rem;}
-        .spinner { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-        /* --- MODAL STYLES --- */
-        .modal-overlay { position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 200; padding: 1rem; }
-        .modal-box { background-color: #fff; border-radius: 0.75rem; padding: 2rem; width: 100%; max-width: 28rem; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-        .modal-title { font-size: 1.25rem; font-weight: 600; }
-        .modal-close-btn { background: #f3f4f6; border: none; border-radius: 50%; padding: 0.5rem; display: flex; cursor: pointer; }
-        .modal-body p { margin: 0 0 1rem 0; color: #4b5563; }
-        .modal-body strong { color: #1f2937; }
-        .form-group { margin-bottom: 1.5rem; }
-        .form-label { display: block; font-weight: 500; margin-bottom: 0.5rem; font-size: 0.9rem;}
-        .form-input { width: 100%; box-sizing: border-box; border: 1px solid #d1d5db; border-radius: 8px; padding: 0.75rem; font-size: 1rem; }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }
-        .button-cancel { background-color: #f3f4f6; border: 1px solid #d1d5db; color: #1f2937; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer;}
-        .button-confirm { background-color: #4f46e5; color: #fff; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; display: inline-flex; align-items: center; gap: 0.5rem;}
-        .button-confirm:disabled { background-color: #a5b4fc; cursor: not-allowed; }
-        .button-cancel-schedule {
-            display: flex; align-items: center; justify-content: center;
-            background-color: #fee2e2; color: #991b1b; border: none;
-             width: 36px; height: 36px; /* Slightly smaller */ border-radius: 50%; cursor: pointer;
-            transition: background-color 0.2s;
+    // Fetch all initial data
+    useEffect(() => {
+      const initialize = async () => {
+        const storedUserString = await AsyncStorage.getItem("user");
+        if (storedUserString) {
+          setUser(JSON.parse(storedUserString));
         }
-         .button-cancel-schedule:hover { background-color: #fecaca; }
-         .button-cancel-schedule:disabled { opacity: 0.7; cursor: not-allowed; }
+        fetchAllData();
+      };
+      initialize();
+    }, []);
 
-        /* Ensure item-actions in schedule has space */
-         .schedule-item .item-actions { margin-left: auto; /* Push cancel button right */ }
-      `}</style>
+    const fetchAllData = () => {
+      fetchRequests();
+      fetchSchedule();
+      fetchPendingBookings();
+    };
 
-      <div className="page-container">
-        <header className="header-container">
-             <div className="header-left">
-                <h1 className="header-title">Mentor Dashboard</h1>
-                {user && <p className="header-subtitle">Welcome back, {user.name}!</p>}
-            </div>
-            <div className="header-right">
-                <button onClick={() => router.push('/mentor/availability')} className="icon-button" title="Set Availability"><Calendar size={20} color="#4f46e5" /></button>
-                <button onClick={fetchAllData} className="icon-button" title="Refresh Data"><RefreshCw size={20} color="#4f46e5" /></button>
-                <button onClick={handleLogout} className="icon-button" title="Logout"><LogOut size={20} color="#4f46e5" /></button>
-            </div>
-        </header>
+    // --- Fetch Connection Requests ---
+    const fetchRequests = async () => {
+      setIsLoadingRequests(true);
+      setFetchRequestsError(null);
+      const token = await AsyncStorage.getItem("token");
+      try {
+        const res = await fetch("https://placemate-ru7v.onrender.com/api/connections/my-requests", { headers: { "Authorization": `Bearer ${token}` } });
+        if (!res.ok) throw new Error("Could not fetch connection requests.");
+        const data = await res.json();
+        setRequests(data);
+      } catch (err) { setFetchRequestsError(err.message); } finally { setIsLoadingRequests(false); }
+    };
 
-        <main className="main-content">
+    // --- Fetch Confirmed Schedule ---
+    const fetchSchedule = async () => {
+      setIsLoadingSchedule(true);
+      setFetchScheduleError(null);
+      const token = await AsyncStorage.getItem("token");
+      try {
+        const res = await fetch("https://placemate-ru7v.onrender.com/api/bookings/my-schedule", { headers: { "Authorization": `Bearer ${token}` } });
+        if (!res.ok) throw new Error("Could not fetch schedule.");
+        const data = await res.json();
+        setSchedule(data);
+      } catch (err) { setFetchScheduleError(err.message); } finally { setIsLoadingSchedule(false); }
+    };
+
+    // --- Fetch Pending Booking Requests ---
+    const fetchPendingBookings = async () => {
+      setIsLoadingPendingBookings(true);
+      setFetchPendingBookingsError(null);
+      const token = await AsyncStorage.getItem("token");
+      try {
+        const res = await fetch("https://placemate-ru7v.onrender.com/api/bookings/my-pending-requests", { headers: { "Authorization": `Bearer ${token}` } });
+        if (!res.ok) throw new Error("Could not fetch pending booking requests.");
+        const data = await res.json();
+        setPendingBookings(data);
+      } catch (err) { setFetchPendingBookingsError(err.message); } finally { setIsLoadingPendingBookings(false); }
+    };
+
+    // --- Handle Connection Request Response ---
+    const handleConnectionResponse = async (requestId, newStatus) => {
+      setActionLoading(requestId);
+      const token = await AsyncStorage.getItem("token");
+      
+      Alert.alert(
+          "Confirm Action",
+          `Are you sure you want to ${newStatus} this connection request?`,
+          [
+              { text: "Cancel", style: "cancel", onPress: () => setActionLoading(null) },
+              {
+                  text: newStatus.charAt(0).toUpperCase() + newStatus.slice(1),
+                  style: newStatus === 'rejected' ? 'destructive' : 'default',
+                  onPress: async () => {
+                      try {
+                          const res = await fetch(`https://placemate-ru7v.onrender.com/api/connections/respond/${requestId}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                              body: JSON.stringify({ status: newStatus })
+                          });
+                          if (!res.ok) throw new Error("Action failed.");
+                          setRequests(prev => prev.filter(req => req._id !== requestId));
+                          Alert.alert("Success", `Connection request ${newStatus}!`);
+                      } catch (err) { Alert.alert("Error", err.message); } finally { setActionLoading(null); }
+                  }
+              }
+          ]
+      );
+    };
+
+    // --- Open Accept Modal ---
+    const handleAcceptBooking = (booking) => {
+      setCurrentBookingToAccept({
+        _id: booking._id,
+        studentName: booking.student.name,
+        time: dayjs(booking.startTime).format('ddd, MMM D, h:mm A')
+      });
+      setMeetingLink(''); // Clear previous link
+      setShowAcceptModal(true);
+    };
+
+    // --- Submit Booking Confirmation ---
+    const submitAcceptBooking = async () => {
+      if (!meetingLink.trim() || !currentBookingToAccept) return;
+      setIsConfirmingBooking(true);
+      const token = await AsyncStorage.getItem("token");
+      try {
+        const res = await fetch(`https://placemate-ru7v.onrender.com/api/bookings/confirm/${currentBookingToAccept._id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+          body: JSON.stringify({ meetingLink: meetingLink.trim() })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.message || "Failed to confirm booking.");
+        }
+        setShowAcceptModal(false);
+        setCurrentBookingToAccept(null);
+        Alert.alert("Success", "Booking confirmed and student notified!");
+        fetchAllData(); // Refresh all lists
+      } catch (err) {
+        Alert.alert("Error", `Error: ${err.message}`);
+      } finally {
+        setIsConfirmingBooking(false);
+      }
+    };
+
+    // --- Handle Booking Rejection ---
+    const handleRejectBooking = async (bookingId) => {
+      Alert.alert(
+          "Confirm Rejection",
+          "Are you sure you want to reject this booking request?",
+          [
+              { text: "Cancel", style: "cancel" },
+              {
+                  text: "Reject",
+                  style: "destructive",
+                  onPress: async () => {
+                      setActionLoading(bookingId); // Show spinner on the specific item's button
+                      const token = await AsyncStorage.getItem("token");
+                      try {
+                          const res = await fetch(`https://placemate-ru7v.onrender.com/api/bookings/reject/${bookingId}`, {
+                              method: "PATCH",
+                              headers: { "Authorization": `Bearer ${token}` }
+                          });
+                          if (!res.ok) throw new Error("Failed to reject booking.");
+                          Alert.alert("Success", "Booking request rejected.");
+                          fetchPendingBookings(); // Only refresh pending list
+                      } catch (err) {
+                          Alert.alert("Error", err.message);
+                      } finally {
+                          setActionLoading(null); // Clear spinner
+                      }
+                  }
+              }
+          ]
+      );
+    };
+
+    const handleLogout = async () => {
+      // Note: Logout logic should ideally be inside app/home.jsx or a service, 
+      // but replicating functionality here for completeness.
+      await AsyncStorage.removeItem("token");
+      await AsyncStorage.removeItem("user");
+      router.replace("/");
+    };
+
+
+    const handleCancelByMentor = async (bookingId) => {
+      Alert.alert(
+          "Confirm Cancellation",
+          "Are you sure you want to cancel this scheduled session?",
+          [
+              { text: "No", style: "cancel" },
+              {
+                  text: "Yes, Cancel",
+                  style: "destructive",
+                  onPress: async () => {
+                      setCancelLoading(bookingId); // Show spinner on cancel button
+                      const token = await AsyncStorage.getItem("token");
+                      try {
+                          const res = await fetch(`https://placemate-ru7v.onrender.com/api/bookings/cancel/mentor/${bookingId}`, {
+                              method: "PATCH",
+                              headers: { "Authorization": `Bearer ${token}` }
+                          });
+                          if (!res.ok) throw new Error("Failed to cancel booking.");
+                          Alert.alert("Success", "Booking cancelled successfully.");
+                          fetchSchedule(); // Refresh the schedule list
+                      } catch (err) {
+                          Alert.alert("Error", err.message);
+                      } finally {
+                          setCancelLoading(null); // Clear spinner
+                      }
+                  }
+              }
+          ]
+      );
+    };
+
+    // --- Rendering Functions ---
+    const renderRequests = () => {
+      if (isLoadingRequests) { return <View style={styles.infoContainer}><ActivityIndicator size="small" color="#4f46e5" /><Text style={styles.infoText}>Loading requests...</Text></View>; }
+      if (fetchRequestsError) { return <Text style={styles.errorText}>{fetchRequestsError}</Text>; }
+      if (requests.length === 0) { return (<View style={[styles.infoContainer, styles.emptyState]}><Users size={40} color="#6b7280" /><Text style={styles.emptyTitle}>All Caught Up!</Text><Text style={styles.emptySubtitle}>You have no new connection requests.</Text></View>); }
+      
+      return (<View style={styles.itemList}>{requests.map(req => (
+          <View key={req._id} style={[styles.listItem, styles.requestItem]}>
+              <View style={styles.itemInfo}>
+                  <Text style={styles.itemName}>{req.student.name}</Text>
+                  <Text style={styles.itemEmail}>{req.student.email}</Text>
+              </View>
+              <View style={styles.itemActions}>
+                  <Pressable style={styles.buttonReject} onPress={() => handleConnectionResponse(req._id, 'rejected')} disabled={actionLoading === req._id}>
+                      {actionLoading === req._id ? <ActivityIndicator size="small" color="#991b1b" /> : <X size={18} color="#991b1b" />}
+                  </Pressable>
+                  <Pressable style={styles.buttonApprove} onPress={() => handleConnectionResponse(req._id, 'accepted')} disabled={actionLoading === req._id}>
+                      {actionLoading === req._id ? <ActivityIndicator size="small" color="#166534" /> : <Check size={18} color="#166534" />}
+                  </Pressable>
+              </View>
+          </View>
+      ))}</View>);
+    };
+
+    const renderSchedule = () => {
+      if (isLoadingSchedule) { return <View style={styles.infoContainer}><ActivityIndicator size="small" color="#4f46e5" /><Text style={styles.infoText}>Loading schedule...</Text></View>; }
+      if (fetchScheduleError) { return <Text style={styles.errorText}>{fetchScheduleError}</Text>; }
+      if (schedule.length === 0) { return (<View style={[styles.infoContainer, styles.emptyState]}><Calendar size={40} color="#6b7280" /><Text style={styles.emptyTitle}>No Upcoming Sessions</Text><Text style={styles.emptySubtitle}>Your schedule is clear for now.</Text></View>); }
+      
+      return (<View style={styles.itemList}>{schedule.map(booking => (
+          <View key={booking._id} style={[styles.listItem, styles.scheduleItem]}>
+              <View style={styles.itemInfo}>
+                  <Text style={styles.itemName}>{booking.student.name}</Text>
+                  <Text style={styles.itemEmail}>{dayjs(booking.startTime).format('ddd, MMM D, YYYY')}</Text>
+                  <Text style={styles.itemTime}><Clock size={14} color="#4f46e5" style={{marginRight: 4}}/>{dayjs(booking.startTime).format('h:mm A')} - {dayjs(booking.endTime).format('h:mm A')}</Text>
+                  {booking.meetingLink && (
+                      <Pressable onPress={() => Linking.openURL(booking.meetingLink)}>
+                          <Text style={styles.itemMeetingLink}><Link2 size={14} color="#4f46e5" /> Join Meeting</Text>
+                      </Pressable>
+                  )}
+              </View>
+              <View style={styles.itemActions}>
+                  <Pressable
+                      style={styles.buttonCancelSchedule}
+                      onPress={() => handleCancelByMentor(booking._id)}
+                      disabled={cancelLoading === booking._id}
+                      title="Cancel Session"
+                  >
+                      {cancelLoading === booking._id ? <ActivityIndicator size="small" color="#991b1b" /> : <XCircle size={18} color="#991b1b" />}
+                  </Pressable>
+              </View>
+          </View>
+      ))}</View>);
+    };
+
+    const renderPendingBookings = () => {
+      if (isLoadingPendingBookings) { return <View style={styles.infoContainer}><ActivityIndicator size="small" color="#4f46e5" /><Text style={styles.infoText}>Loading booking requests...</Text></View>; }
+      if (fetchPendingBookingsError) { return <Text style={styles.errorText}>{fetchPendingBookingsError}</Text>; }
+      if (pendingBookings.length === 0) { return (<View style={[styles.infoContainer, styles.emptyState]}><Clock size={40} color="#6b7280" /><Text style={styles.emptyTitle}>No Pending Bookings</Text><Text style={styles.emptySubtitle}>You have no booking requests waiting for approval.</Text></View>); }
+      
+      return (<View style={styles.itemList}>{pendingBookings.map(booking => (
+          <View key={booking._id} style={[styles.listItem, styles.requestItem]}>
+              <View style={styles.itemInfo}>
+                  <Text style={styles.itemName}>{booking.student.name}</Text>
+                  <Text style={styles.itemEmail}>{dayjs(booking.startTime).format('ddd, MMM D, h:mm A')}</Text>
+              </View>
+              <View style={styles.itemActions}>
+                  <Pressable
+                      style={styles.buttonReject}
+                      onPress={() => handleRejectBooking(booking._id)}
+                      disabled={actionLoading === booking._id}
+                      title="Reject Booking"
+                  >
+                      {actionLoading === booking._id ? <ActivityIndicator size="small" color="#991b1b" /> : <X size={18} color="#991b1b" />}
+                  </Pressable>
+                  <Pressable
+                      style={styles.buttonApprove}
+                      onPress={() => handleAcceptBooking(booking)} // Opens modal
+                      disabled={actionLoading === booking._id}
+                      title="Accept Booking"
+                  >
+                      <Check size={18} color="#166534" />
+                  </Pressable>
+              </View>
+          </View>
+      ))}</View>);
+    };
+
+
+    return (
+      <SafeAreaView style={styles.pageContainer}>
+        <View style={styles.headerContainer}>
+          <View style={styles.headerLeft}>
+            <Text style={styles.headerTitle}>Mentor Dashboard</Text>
+            {user && <Text style={styles.headerSubtitle}>Welcome back, {user.fullName}!</Text>}
+          </View>
+          <View style={styles.headerRight}>
+            <Pressable onPress={() => router.push('/mentor/availability')} style={styles.iconButton} title="Set Availability">
+                <Calendar size={20} color="#4f46e5" />
+            </Pressable>
+            <Pressable onPress={fetchAllData} style={styles.iconButton} title="Refresh Data">
+                <RefreshCw size={20} color="#4f46e5" />
+            </Pressable>
+            <Pressable onPress={handleLogout} style={styles.iconButton} title="Logout">
+                <LogOut size={20} color="#4f46e5" />
+            </Pressable>
+          </View>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.mainContent}>
           {/* Column 1: Connection Requests */}
-          <section className="section">
-            <div className="section-header"> <h2 className="section-title">Connection Requests</h2> </div>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}> <Text style={styles.sectionTitle}>Connection Requests</Text> </View>
             {renderRequests()}
-          </section>
+          </View>
 
           {/* Column 2: Pending Booking Requests */}
-          <section className="section">
-            <div className="section-header"> <h2 className="section-title">Pending Booking Requests</h2> </div>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}> <Text style={styles.sectionTitle}>Pending Booking Requests</Text> </View>
             {renderPendingBookings()}
-          </section>
+          </View>
 
           {/* Column 3: Upcoming Schedule */}
-          <section className="section">
-            <div className="section-header"> <h2 className="section-title">Upcoming Sessions</h2> </div>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}> <Text style={styles.sectionTitle}>Upcoming Sessions</Text> </View>
             {renderSchedule()}
-          </section>
-        </main>
-      </div>
+          </View>
+        </ScrollView>
 
-       {/* --- ACCEPT BOOKING MODAL --- */}
-        {showAcceptModal && currentBookingToAccept && (
-            <div className="modal-overlay" onClick={() => setShowAcceptModal(false)}>
-                <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-                    <div className="modal-header">
-                        <h2 className="modal-title">Confirm Booking Request</h2>
-                        <button className="modal-close-btn" onClick={() => setShowAcceptModal(false)}><X size={20} /></button>
-                    </div>
-                    <div className="modal-body">
-                         <p>Accept request from <strong>{currentBookingToAccept.studentName}</strong> for <strong>{currentBookingToAccept.time}</strong>?</p>
-                        <div className="form-group">
-                            <label htmlFor="meetingLink" className="form-label">Meeting Link (e.g., Google Meet, Zoom)</label>
-                            <input
-                                type="url"
-                                id="meetingLink"
-                                className="form-input"
-                                value={meetingLink}
-                                onChange={(e) => setMeetingLink(e.target.value)}
-                                placeholder="https://meet.google.com/..."
-                                required
-                            />
-                        </div>
-                    </div>
-                    <div className="modal-actions">
-                        <button type="button" className="button-cancel" onClick={() => setShowAcceptModal(false)}>Cancel</button>
-                        <button
-                            type="button"
-                            className="button-confirm"
-                            onClick={submitAcceptBooking}
-                            disabled={isConfirmingBooking || !meetingLink.trim()}
-                        >
-                           {isConfirmingBooking ? <Loader2 size={18} className="spinner"/> : <Check size={18}/>}
-                           {isConfirmingBooking ? 'Confirming...' : 'Confirm & Send Link'}
-                        </button>
-                    </div>
-                </div>
-            </div>
-        )}
-    </>
-  );
-}
+        {/* --- ACCEPT BOOKING MODAL --- */}
+        <Modal
+          visible={showAcceptModal}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setShowAcceptModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalBox}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Confirm Booking Request</Text>
+                <Pressable style={styles.modalCloseBtn} onPress={() => setShowAcceptModal(false)}>
+                    <X size={20} color="#1f2937" />
+                </Pressable>
+              </View>
+              <View style={styles.modalBody}>
+                  <Text style={styles.modalBodyText}>
+                    Accept request from <Text style={styles.modalBodyTextStrong}>{currentBookingToAccept?.studentName}</Text> for <Text style={styles.modalBodyTextStrong}>{currentBookingToAccept?.time}</Text>?
+                  </Text>
+                  <View style={styles.formGroup}>
+                      <Text style={styles.formLabel}>Meeting Link (required)</Text>
+                      <TextInput
+                          style={styles.formInput}
+                          keyboardType="url"
+                          value={meetingLink}
+                          onChangeText={setMeetingLink}
+                          placeholder="https://meet.google.com/..."
+                          placeholderTextColor="#9ca3af"
+                          autoCapitalize="none"
+                          required
+                      />
+                  </View>
+              </View>
+              <View style={styles.modalActions}>
+                  <Pressable style={styles.buttonCancel} onPress={() => setShowAcceptModal(false)}>
+                      <Text style={styles.buttonCancelText}>Cancel</Text>
+                  </Pressable>
+                  <Pressable
+                      style={styles.buttonConfirm}
+                      onPress={submitAcceptBooking}
+                      disabled={isConfirmingBooking || !meetingLink.trim()}
+                  >
+                      {isConfirmingBooking ? 
+                          <ActivityIndicator size="small" color="#fff" /> 
+                          : <Check size={18} color="#fff" />
+                      }
+                      <Text style={styles.buttonConfirmText}>{isConfirmingBooking ? 'Confirming...' : 'Confirm & Send Link'}</Text>
+                  </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </SafeAreaView>
+    );
+  }
+
+  // --- StyleSheet ---
+  const styles = StyleSheet.create({
+    pageContainer: {
+      flex: 1,
+      backgroundColor: '#f9fafe',
+    },
+    headerContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: 16,
+      paddingHorizontal: 24,
+      backgroundColor: '#fff',
+      borderBottomWidth: 1,
+      borderBottomColor: '#e5e7eb',
+    },
+    headerLeft: {
+      flexDirection: 'column',
+      flexShrink: 1,
+    },
+    headerTitle: {
+      fontSize: 28,
+      fontWeight: '700',
+      color: '#111827',
+    },
+    headerSubtitle: {
+      fontSize: 14,
+      color: '#4b5563',
+    },
+    headerRight: {
+      flexDirection: 'row',
+      gap: 12,
+    },
+    iconButton: {
+      padding: 8,
+      backgroundColor: '#eef2ff',
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    mainContent: {
+      padding: 24,
+      maxWidth: 1200,
+      alignSelf: 'center',
+      width: '100%',
+      flexDirection: 'row', // Use flex for column layout on large screens
+      flexWrap: 'wrap',
+      gap: 24,
+    },
+    section: {
+      flexGrow: 1,
+      flexBasis: 300, // Provides a base width for each column
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    sectionTitle: {
+      fontSize: 20,
+      fontWeight: '600',
+      color: '#1f2937',
+    },
+    itemList: {
+      gap: 12,
+    },
+    listItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      backgroundColor: '#fff',
+      borderWidth: 1,
+      borderColor: '#e5e7eb',
+      borderRadius: 12,
+      padding: 16,
+      flexWrap: 'wrap',
+    },
+    itemInfo: {
+      flexGrow: 1,
+      overflow: 'hidden',
+    },
+    itemName: {
+      fontWeight: '600',
+      color: '#1f2937',
+      fontSize: 16,
+    },
+    itemEmail: {
+      color: '#4b5563',
+      marginTop: 4,
+      fontSize: 14,
+    },
+    itemTime: {
+      color: '#4f46e5',
+      marginTop: 4,
+      fontSize: 14,
+      fontWeight: '500',
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    itemMeetingLink: {
+      color: '#4f46e5',
+      fontSize: 14,
+      fontWeight: '500',
+      marginTop: 4,
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    itemActions: {
+      flexDirection: 'row',
+      gap: 12,
+      marginLeft: 16,
+      flexShrink: 0,
+    },
+    buttonReject: {
+      backgroundColor: '#fee2e2',
+      padding: 10,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    buttonApprove: {
+      backgroundColor: '#dcfce7',
+      padding: 10,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    buttonCancelSchedule: {
+      backgroundColor: '#fee2e2',
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    infoContainer: {
+      paddingVertical: 32,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    infoText: {
+      color: '#6b7280',
+      fontSize: 14,
+      marginTop: 8,
+    },
+    errorText: {
+      color: '#ef4444',
+      fontWeight: '500',
+      fontSize: 14,
+      padding: 16,
+      textAlign: 'center',
+    },
+    emptyState: {
+      padding: 32,
+      backgroundColor: '#fff',
+      borderRadius: 8,
+      borderWidth: 1,
+      borderStyle: 'dashed',
+      borderColor: '#d1d5db',
+    },
+    emptyTitle: {
+      marginTop: 16,
+      marginBottom: 8,
+      fontWeight: '600',
+      color: '#374151',
+    },
+    emptySubtitle: {
+      color: '#6b7280',
+      fontSize: 14,
+      textAlign: 'center',
+    },
+    // --- Modal Styles ---
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: 'rgba(0, 0, 0, 0.6)',
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: 16,
+    },
+    modalBox: {
+      backgroundColor: '#fff',
+      borderRadius: 12,
+      padding: 24,
+      width: '90%',
+      maxWidth: 448,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 16,
+    },
+    modalTitle: {
+      fontSize: 20,
+      fontWeight: '600',
+    },
+    modalCloseBtn: {
+      backgroundColor: '#f3f4f6',
+      borderRadius: 20,
+      padding: 8,
+    },
+    modalBody: {
+      marginBottom: 16,
+    },
+    modalBodyText: {
+      color: '#4b5563',
+      marginBottom: 16,
+      fontSize: 15,
+    },
+    modalBodyTextStrong: {
+      fontWeight: '700',
+      color: '#1f2937',
+    },
+    formGroup: {
+      marginBottom: 24,
+    },
+    formLabel: {
+      fontWeight: '500',
+      marginBottom: 6,
+      fontSize: 14,
+    },
+    formInput: {
+      borderWidth: 1,
+      borderColor: '#d1d5db',
+      borderRadius: 8,
+      padding: 12,
+      fontSize: 16,
+      backgroundColor: '#fff',
+    },
+    modalActions: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      gap: 12,
+    },
+    buttonCancel: {
+      backgroundColor: '#f3f4f6',
+      borderWidth: 1,
+      borderColor: '#d1d5db',
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+    },
+    buttonCancelText: {
+      color: '#1f2937',
+      fontWeight: '600',
+    },
+    buttonConfirm: {
+      backgroundColor: '#4f46e5',
+      paddingVertical: 10,
+      paddingHorizontal: 16,
+      borderRadius: 8,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    buttonConfirmText: {
+      color: 'white',
+      fontWeight: '600',
+    },
+  });

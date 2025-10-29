@@ -1,42 +1,168 @@
 import React, { useState, useRef } from 'react';
-import { ArrowLeft, Loader2, UploadCloud, FileText, CheckCircle, AlertTriangle, Lightbulb, ThumbsUp, Trash2 } from 'lucide-react';
+import {
+    SafeAreaView,
+    ScrollView,
+    View,
+    Text,
+    Pressable,
+    StyleSheet,
+    ActivityIndicator,
+    TextInput,
+    Alert,
+    Platform, // Used for platform-specific file handling placeholder
+} from 'react-native';
+import {
+    ArrowLeft,
+    Loader2,
+    UploadCloud,
+    FileText,
+    CheckCircle,
+    AlertTriangle,
+    Lightbulb,
+    ThumbsUp,
+    Trash2
+} from 'lucide-react-native';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage'; // RN equivalent of localStorage
 
+
+// --- Helper Function: File Size Formatting ---
+const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+};
+
+
+// --- Placeholder for RN File Picker (REQUIRED FOR ACTUAL FUNCTIONALITY) ---
+const useRNFilePicker = (setSelectedFile, setError) => {
+    // In a real React Native app, you would integrate a library like 
+    // react-native-document-picker here.
+    
+    // This ref is only used to simulate state reset, not actual DOM manipulation.
+    const fileInputRef = useRef(null); 
+
+    const handleUploadClick = () => {
+        // --- START PLACEHOLDER ---
+        Alert.alert(
+            "File Picker Simulation",
+            "In a real app, a native file picker would open here.\n\nWe will simulate a file selection for demo purposes.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Simulate PDF Select",
+                    onPress: () => {
+                        const simulatedFile = {
+                            name: "my_awesome_resume.pdf",
+                            type: "application/pdf",
+                            size: 1500000, // 1.5MB
+                            uri: "file://path/to/resume.pdf" // Native URI
+                        };
+                        
+                        setSelectedFile(simulatedFile);
+                        setError(null);
+                    }
+                }
+            ]
+        );
+        // --- END PLACEHOLDER ---
+    };
+
+    const handleRemoveFile = () => {
+        setSelectedFile(null);
+        setError(null);
+        // Optional: Resetting value property of file input is not necessary in RN
+        if (fileInputRef.current) {
+            // Placeholder for any state cleanup if needed
+        }
+    };
+    
+    return { fileInputRef, handleUploadClick, handleRemoveFile };
+};
+
+
+// --- Results Renderer (Converted to RN) ---
+const renderResults = (analysisResult) => {
+    if (!analysisResult) return null;
+
+    let scoreColor = '#4f46e5';
+    if (analysisResult.score >= 85) scoreColor = '#10b981';
+    else if (analysisResult.score < 60) scoreColor = '#f59e0b';
+
+    return (
+        <View style={styles.resultsSection}>
+            <Text style={styles.resultsTitle}>Analysis Results</Text>
+            
+            {/* Score Display */}
+            <View style={styles.scoreDisplay}>
+                <Text style={[styles.scoreValue, { color: scoreColor }]}>{analysisResult.score}</Text>
+                <Text style={styles.scoreLabel}>/ 100</Text>
+            </View>
+
+            {/* Overall Feedback Card */}
+            <View style={[styles.feedbackCard, styles.feedbackCardOverall]}>
+                <Text style={styles.feedbackCardHeader}>Overall Feedback</Text>
+                <Text style={styles.feedbackCardParagraph}>{analysisResult.overallFeedback}</Text>
+            </View>
+
+            {/* Positives Card */}
+            <View style={[styles.feedbackCard, styles.feedbackCardPositive]}>
+                <View style={styles.feedbackCardTitleContainer}>
+                    <ThumbsUp size={20} color="#15803d" />
+                    <Text style={[styles.feedbackCardHeader, styles.feedbackCardHeaderPositive]}>Strengths</Text>
+                </View>
+                <View style={styles.feedbackCardList}>
+                    {analysisResult.positiveAspects.length > 0 ?
+                        analysisResult.positiveAspects.map((item, index) => ( 
+                            <View key={index} style={styles.feedbackCardListItem}> 
+                                <CheckCircle size={16} color="#22c55e" style={styles.listIcon} /> 
+                                <Text style={styles.feedbackCardListItemText}>{item}</Text> 
+                            </View> 
+                        ))
+                        : <Text style={[styles.feedbackCardListItemText, styles.noItems]}>No specific strengths highlighted.</Text>
+                    }
+                </View>
+            </View>
+
+            {/* Improvements Card */}
+            <View style={[styles.feedbackCard, styles.feedbackCardImprovement]}>
+                <View style={styles.feedbackCardTitleContainer}>
+                    <Lightbulb size={20} color="#b45309" />
+                    <Text style={[styles.feedbackCardHeader, styles.feedbackCardHeaderImprovement]}>Areas for Improvement</Text>
+                </View>
+                <View style={styles.feedbackCardList}>
+                    {analysisResult.areasForImprovement.length > 0 ?
+                        analysisResult.areasForImprovement.map((item, index) => ( 
+                            <View key={index} style={styles.feedbackCardListItem}> 
+                                <AlertTriangle size={16} color="#f59e0b" style={styles.listIcon} /> 
+                                <Text style={styles.feedbackCardListItemText}>{item}</Text> 
+                            </View> 
+                        ))
+                        : <Text style={[styles.feedbackCardListItemText, styles.noItems]}>No specific areas for improvement suggested.</Text>
+                    }
+                </View>
+            </View>
+        </View>
+    );
+};
+
+
+// --- Main Component (Converted to RN) ---
 export default function ResumeAnalyzer() {
     const router = useRouter();
-    const fileInputRef = useRef(null);
 
     const [selectedFile, setSelectedFile] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [analysisResult, setAnalysisResult] = useState(null);
     const [error, setError] = useState(null);
 
-    // Handle file selection
-    const handleFileChange = (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            if (file.type === 'application/pdf' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                if (file.size <= 5 * 1024 * 1024) { // 5MB limit
-                    setSelectedFile(file);
-                    setError(null);
-                    setAnalysisResult(null);
-                } else { setError('File size exceeds 5MB limit.'); setSelectedFile(null); }
-            } else { setError('Invalid file type. Please upload a PDF or DOCX file.'); setSelectedFile(null); }
-        }
-    };
+    // Using the placeholder file picker logic
+    const { fileInputRef, handleUploadClick, handleRemoveFile } = useRNFilePicker(setSelectedFile, setError);
 
-    // Trigger hidden file input click
-    const handleUploadClick = () => { fileInputRef.current.click(); };
-
-    // Remove selected file
-    const handleRemoveFile = () => {
-        setSelectedFile(null);
-        setAnalysisResult(null);
-        setError(null);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = ''; // Reset file input
-        }
-    };
+    // Placeholder for browser file change handler
+    const handleFileChange = () => { /* Logic handled by useRNFilePicker hook */ };
 
     // Handle analysis request
     const handleAnalyze = async () => {
@@ -48,17 +174,42 @@ export default function ResumeAnalyzer() {
         setIsLoading(true);
         setError(null);
         setAnalysisResult(null);
-        const token = localStorage.getItem("token");
+        
+        // --- RN specific: Use AsyncStorage instead of localStorage ---
+        const token = await AsyncStorage.getItem("token");
 
+        // The FormData approach is correct, but 'selectedFile' needs to be a 
+        // proper object with a 'uri' and 'type' for RN to handle file upload.
+        // The fetch body logic needs adjustment for RN's fetch/FormData usage.
+        
         const formData = new FormData();
-        formData.append('resumeFile', selectedFile);
-
+        
+        // --- VITAL RN FILE UPLOAD ADJUSTMENT ---
+        // For actual RN file upload, you must include file URI and type:
+        if (Platform.OS === 'web') {
+            // Browser behavior (use for local testing)
+            formData.append('resumeFile', selectedFile);
+        } else {
+            // React Native behavior: use the URI and mime type
+            formData.append('resumeFile', {
+                uri: selectedFile.uri, // URI obtained from document picker
+                name: selectedFile.name,
+                type: selectedFile.type || 'application/pdf',
+            });
+        }
+        // ----------------------------------------
+        
         try {
             const res = await fetch("https://placemate-ru7v.onrender.com/api/resume/analyze", {
                 method: "POST",
-                headers: { "Authorization": `Bearer ${token}` },
+                headers: { 
+                    "Authorization": `Bearer ${token}`,
+                    // VITAL: Do NOT set Content-Type header when using FormData in RN fetch.
+                    // Let the system set it, including the boundary.
+                },
                 body: formData
             });
+            
             const data = await res.json();
             if (!res.ok) { throw new Error(data.message || `Analysis failed (${res.status})`); }
             setAnalysisResult(data);
@@ -71,270 +222,450 @@ export default function ResumeAnalyzer() {
         }
     };
 
-    // Render results section (Improved UI)
-    const renderResults = () => {
-        if (!analysisResult) return null;
-
-        // Determine score color dynamically (example)
-        let scoreColor = '#4f46e5'; // Default blue/purple
-        if (analysisResult.score >= 85) scoreColor = '#10b981'; // Green for high scores
-        else if (analysisResult.score < 60) scoreColor = '#f59e0b'; // Amber for lower scores
-
-        return (
-            <div className="results-section">
-                <h2 className="results-title">Analysis Results</h2>
-
-                {/* Score Display */}
-                <div className="score-display">
-                    <div className="score-value" style={{ color: scoreColor }}>{analysisResult.score}</div>
-                    <div className="score-label">/ 100</div>
-                </div>
-
-                {/* Overall Feedback Card */}
-                <div className="feedback-card overall">
-                    <h3>Overall Feedback</h3>
-                    <p>{analysisResult.overallFeedback}</p>
-                </div>
-
-                {/* Positives Card */}
-                <div className="feedback-card positive">
-                    <h3><ThumbsUp size={20} /> Strengths</h3>
-                    <ul>
-                        {analysisResult.positiveAspects.map((item, index) => (
-                            <li key={index}> <CheckCircle size={16} className="list-icon" /> <span>{item}</span> </li>
-                        ))}
-                         {analysisResult.positiveAspects.length === 0 && <li className="no-items">No specific strengths highlighted.</li>}
-                    </ul>
-                </div>
-
-                {/* Improvements Card */}
-                <div className="feedback-card improvement">
-                    <h3><Lightbulb size={20} /> Areas for Improvement</h3>
-                    <ul>
-                        {analysisResult.areasForImprovement.map((item, index) => (
-                           <li key={index}> <AlertTriangle size={16} className="list-icon" /> <span>{item}</span> </li>
-                        ))}
-                         {analysisResult.areasForImprovement.length === 0 && <li className="no-items">No specific areas for improvement suggested.</li>}
-                    </ul>
-                </div>
-            </div>
-        );
-    };
-
     return (
-        <>
-            <style>{`
-                /* --- Base & Layout Styles --- */
-                /* --- NEW Intro Text Styles --- */
-        .intro-text-container {
-            text-align: center;
-            margin-bottom: 2rem; /* Space below the text */
-            max-width: 600px; /* Limit width */
-        }
-        .intro-title {
-            font-size: 1.8rem; /* Adjust size */
-            font-weight: 600;
-            color: #1f2937;
-            margin-bottom: 0.75rem;
-        }
-        .intro-subtitle {
-            font-size: 1rem;
-            color: #6b7280;
-            line-height: 1.6;
-            margin: 0;
-        }
-        /* --- END NEW Styles --- */
-                body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafe; color: #374151; }
-                .page-container { display: flex; flex-direction: column; min-height: 100vh; overflow-y: auto; }
-                .header-container { display: flex; align-items: center; padding: 1.25rem 1.5rem; background-color: #fff; border-bottom: 1px solid #e5e7eb; }
-                .header-left { display: flex; align-items: center; gap: 1rem; }
-                .back-button { padding: 0.5rem; background-color: #eef2ff; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-                .header-title { font-size: 1.75rem; font-weight: 700; color: #1f2937; margin: 0; }
-                .main-content { padding: 2rem 1.5rem 3rem 1.5rem; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; }
+        <SafeAreaView style={styles.pageContainer}>
+            <View style={styles.headerContainer}>
+                <View style={styles.headerLeft}>
+                    <Pressable
+                        onPress={() => {
+                            if (router.canGoBack()) {
+                                router.back();
+                            } else {
+                                router.push('/home');
+                            }
+                        }}
+                        style={styles.backButton}
+                        title="Back"
+                    >
+                        <ArrowLeft size={24} color="#4f46e5" />
+                    </Pressable>
+                    <Text style={styles.headerTitle}>AI Resume Analyzer</Text>
+                </View>
+            </View>
 
-                /* --- Upload Area --- */
-                .upload-section { width: 100%; max-width: 500px; margin-bottom: 1.5rem; display: flex; flex-direction: column; align-items: center; }
-                .upload-box { border: 2px dashed #a5b4fc; background-color: #eef2ff; border-radius: 8px; padding: 2.5rem 1.5rem; cursor: pointer; transition: background-color 0.2s; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; width: 100%; box-sizing: border-box; }
-                .upload-box:hover { background-color: #e0e7ff; }
-                .upload-icon { color: #4f46e5; }
-                .upload-text { color: #4338ca; font-weight: 600; font-size: 1.1rem; text-align: center; }
-                .upload-hint { color: #6b7280; font-size: 0.9rem; margin-top: 0.25rem; text-align: center;}
-                .file-display-wrapper { width: 100%; max-width: 500px; display: flex; flex-direction: column; align-items: center; gap: 1.5rem; }
-                .file-display { padding: 0.75rem 1rem; background-color: #fff; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.75rem; border: 1px solid #d1d5db; box-shadow: 0 1px 2px rgba(0,0,0,0.05); width: 100%; justify-content: space-between; box-sizing: border-box; }
-                .file-info { display: flex; align-items: center; gap: 0.75rem; overflow: hidden; }
-                .file-icon { color: #4b5563; flex-shrink: 0; }
-                .file-name { color: #1f2937; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
-                .remove-file-btn { background: none; border: none; color: #ef4444; cursor: pointer; padding: 0.25rem; display: flex; flex-shrink: 0;}
-                .analyze-button { background-color: #4f46e5; color: white; border: none; padding: 0.8rem 2rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 1rem; display: inline-flex; align-items: center; gap: 0.5rem; transition: background-color 0.2s; }
-                .analyze-button:hover { background-color: #4338ca; }
-                .analyze-button:disabled { background-color: #a5b4fc; cursor: not-allowed; }
+            <ScrollView contentContainerStyle={styles.mainContent}>
+                {/* --- Conditionally Render Upload Section --- */}
+               {!analysisResult && (
+    <View style={styles.uploadMainSection}>
+        
+        {/* --- INTRODUCTORY TEXT ADDED HERE --- */}
+        <View style={styles.introTextContainer}>
+            <Text style={styles.introTitle}>Get Instant Resume Feedback</Text>
+            <Text style={styles.introSubtitle}>
+                Upload your resume (PDF or DOCX) below. Our AI will analyze it
+                based on clarity, impact, and common best practices to provide
+                a score and actionable feedback.
+            </Text>
+        </View>
+        {/* ------------------------------------ */}
 
-                /* --- Status Messages --- */
-                .status-message { width: 100%; max-width: 500px; margin-top: 1rem; text-align: center; }
-                .error-text { color: #ef4444; font-weight: 500; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-size: 0.95rem; }
-                .loading-indicator { display: flex; align-items: center; justify-content: center; gap: 0.5rem; color: #4f46e5; font-weight: 500; font-size: 1rem; padding: 2rem 0;}
-                .spinner { animation: spin 1s linear infinite; }
-                @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-                /* --- Results Section --- */
-                .results-section { margin-top: 2.5rem; background-color: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 1rem; /* Reduced padding */ width: 100%; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-                .results-title { text-align: center; font-size: 1.5rem; font-weight: 600; color: #1f2937; margin: 0.5rem 0 1.5rem 0; }
-
-                /* --- Score Display --- */
-                .score-display { text-align: center; margin-bottom: 2rem; }
-                .score-value { font-size: 3.5rem; font-weight: bold; line-height: 1; }
-                .score-label { font-size: 1rem; color: #6b7280; font-weight: 500; }
-
-                /* --- Feedback Card --- */
-                .feedback-card { margin-bottom: 1.5rem; padding: 1.5rem; border-radius: 8px; border: 1px solid #e5e7eb; background-color: #f9fafb; }
-                .feedback-card:last-child { margin-bottom: 0; }
-                .feedback-card h3 { font-size: 1.2rem; font-weight: 600; color: #1f2937; margin: 0 0 1rem 0; display: flex; align-items: center; gap: 0.6rem; padding-bottom: 0.75rem; border-bottom: 1px solid #e5e7eb;}
-                .feedback-card p { color: #374151; line-height: 1.7; margin: 0; font-size: 0.95rem; }
-                .feedback-card ul { list-style: none; padding: 0; margin: 0.5rem 0 0 0; }
-                .feedback-card li { color: #374151; line-height: 1.7; margin-bottom: 0.75rem; display: flex; align-items: flex-start; gap: 0.75rem; font-size: 0.95rem;}
-                .feedback-card li .list-icon { margin-top: 0.25em; flex-shrink: 0; }
-                 .no-items { font-style: italic; color: #6b7280; }
-
-                /* Card Specific Colors */
-                .feedback-card.overall { background-color: #fff; border-color: #e5e7eb; } /* Plain for overall */
-                .feedback-card.positive { background-color: #f0fdf4; border-color: #bbf7d0; } /* Light Green */
-                .feedback-card.positive h3 { color: #15803d; }
-                .feedback-card.positive .list-icon { color: #22c55e; }
-                .feedback-card.improvement { background-color: #fffbeb; border-color: #fde68a; } /* Light Amber */
-                .feedback-card.improvement h3 { color: #b45309; }
-                .feedback-card.improvement .list-icon { color: #f59e0b; }
-
-            `}</style>
-
-            <div className="page-container">
-                <header className="header-container">
-                    <div className="header-left">
-                        <button onClick={() => {
-                                // Check if router can go back
-                                if (router.canGoBack()) {
-                                    router.back(); // Go back if possible
-                                } else {
-                                    router.push('/home'); // Go to home if not
-                                }
-                            }} className="back-button" title="Back">
-                            <ArrowLeft size={24} color="#4f46e5" />
-                        </button>
-                        <h1 className="header-title">AI Resume Analyzer</h1>
-                    </div>
-                </header>
-
-                <main className="main-content">
-                    {/* --- ADD THE TEXT HERE --- */}
-          {/* --- Conditionally Render Upload Section --- */}
-          {/* Show this section ONLY if there are no results yet */}
-          {!analysisResult && (
-            <>
-              <div className="intro-text-container">
-                <h2 className="intro-title">Get Instant Resume Feedback</h2>
-                <p className="intro-subtitle">
-                  Upload your resume (PDF or DOCX) below. Our AI will analyze it
-                  based on clarity, impact, and common best practices to provide
-                  a score and actionable feedback.
-                </p>
-              </div>
-
-              <input
+        {/* --- 1. THE FIX: Standard HTML Input for Web --- */}
+        {Platform.OS === 'web' && (
+            <input
                 type="file"
                 ref={fileInputRef}
-                onChange={handleFileChange}
+                onChange={(event) => {
+                    // This is the file change handler specific to the web
+                    const file = event.target.files[0];
+                    if (file) {
+                        if (file.type === 'application/pdf' || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+                            if (file.size <= 5 * 1024 * 1024) { // 5MB limit
+                                setSelectedFile(file);
+                                setError(null);
+                                setAnalysisResult(null);
+                            } else { setError('File size exceeds 5MB limit.'); setSelectedFile(null); }
+                        } else { setError('Invalid file type. Please upload a PDF or DOCX file.'); setSelectedFile(null); }
+                    }
+                }}
                 accept=".pdf,.docx"
                 style={{ display: 'none' }}
-              />
+            />
+        )}
+        {/* ------------------------------------------------ */}
 
-              {!selectedFile ? (
-                <div className="upload-section">
-                  <button className="upload-box" onClick={handleUploadClick}>
-                    <UploadCloud size={40} className="upload-icon" />
-                    <span className="upload-text">Click to Upload Resume</span>
-                    <span className="upload-hint">PDF or DOCX, Max 5MB</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="file-display-wrapper">
-                  <div className="file-display">
-                    <div className="file-info">
-                      <FileText size={20} className="file-icon" />
-                      <span className="file-name">{selectedFile.name}</span>
-                    </div>
-                    <button onClick={handleRemoveFile} className="remove-file-btn" title="Remove file">
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                  <button
-                    className="analyze-button"
-                    onClick={handleAnalyze}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? <Loader2 size={18} className="spinner" /> : <CheckCircle size={18} />}
-                    {isLoading ? 'Analyzing...' : 'Analyze Resume'}
-                  </button>
-                </div>
-              )}
+        {!selectedFile ? (
+            <View style={styles.uploadSection}>
+                <Pressable 
+                    style={styles.uploadBox} 
+                    onPress={() => {
+                        if (Platform.OS === 'web' && fileInputRef.current) {
+                            // 2. Web: Trigger the hidden HTML input click
+                            fileInputRef.current.click();
+                        } else {
+                            // Mobile: Trigger the RN/simulated file picker
+                            // (You must replace this Alert with a real document picker library)
+                            Alert.alert("File Picker Required", "Please integrate a library like react-native-document-picker for native file uploads.");
+                        }
+                    }}
+                >
+                    <UploadCloud size={40} color="#4f46e5" />
+                    <Text style={styles.uploadText}>Click to Upload Resume</Text>
+                    <Text style={styles.uploadHint}>PDF or DOCX, Max 5MB</Text>
+                </Pressable>
+            </View>
+                        ) : (
+                            <View style={styles.fileDisplayWrapper}>
+                                <View style={styles.fileDisplay}>
+                                    <View style={styles.fileInfo}>
+                                        <FileText size={20} color="#4b5563" />
+                                        <Text style={styles.fileName} numberOfLines={1}>{selectedFile.name}</Text>
+                                    </View>
+                                    <Pressable onPress={handleRemoveFile} style={styles.removeFileBtn} title="Remove file">
+                                        <Trash2 size={18} color="#ef4444" />
+                                    </Pressable>
+                                </View>
+                                <Text style={styles.fileSizeText}>
+                                    Size: {formatFileSize(selectedFile.size)}
+                                </Text>
+                                <Pressable
+                                    style={[styles.analyzeButton, isLoading && styles.analyzeButtonDisabled]}
+                                    onPress={handleAnalyze}
+                                    disabled={isLoading}
+                                >
+                                    {isLoading ? <Loader2 size={18} color="white" style={styles.spinner} /> : <CheckCircle size={18} color="white" />}
+                                    <Text style={styles.analyzeButtonText}>
+                                        {isLoading ? 'Analyzing...' : 'Analyze Resume'}
+                                    </Text>
+                                </Pressable>
+                            </View>
+                        )}
 
-              {/* Keep error message within this conditional block if needed */}
-              <div className="status-message">
-                 {/* Show loading ONLY when analyzing, not when results are shown */}
-                 {isLoading && ( <div className="loading-indicator">  </div> )}
-                 {error && !isLoading && ( <p className="error-text"> <AlertTriangle size={18}/> {error} </p> )}
-              </div>
-            </>
-          )}
-          {/* --- End Conditional Upload Section --- */}
+                        {/* <View style={styles.statusMessage}>
+                            {isLoading && (
+                                <View style={styles.loadingIndicator}>
+                                    <Text style={styles.loadingText}>Loading...</Text>
+                                </View>
+                            )}
+                            {error && !isLoading && (
+                                <Text style={styles.errorText}>
+                                    <AlertTriangle size={18} color="#ef4444" /> {error}
+                                </Text>
+                            )}
+                        </View> */}
+                    </View>
+                )}
+                {/* --- End Conditional Upload Section --- */}
 
+                {/* --- Results Area (Rendered when analysisResult is available) --- */}
+                {!isLoading && analysisResult && renderResults(analysisResult)}
 
-          {/* --- Results Area (Rendered when analysisResult is available) --- */}
-          {/* Show results only when not loading AND results exist */}
-          {!isLoading && analysisResult && renderResults(analysisResult)}
-
-                </main>
-            </div>
-        </>
+            </ScrollView>
+        </SafeAreaView>
     );
 }
 
-// --- Render Results Function (Improved UI) ---
-// Moved outside the main component for clarity, receives results as argument
-const renderResults = (analysisResult) => {
-    if (!analysisResult) return null;
+// --- StyleSheet (Converted from CSS) ---
+const styles = StyleSheet.create({
+    // --- Base & Layout Styles ---
+    pageContainer: {
+        flex: 1,
+        backgroundColor: '#f9fafe',
+    },
+    headerContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12, // 1.25rem = 20px
+        paddingHorizontal: 16, // 1.5rem = 24px
+        backgroundColor: '#fff',
+        borderBottomWidth: 1,
+        borderBottomColor: '#e5e7eb',
+    },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 16, // 1rem = 16px
+    },
+    backButton: {
+        padding: 8, // 0.5rem = 8px
+        backgroundColor: '#eef2ff',
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    headerTitle: {
+        fontSize: 28, // 1.75rem = 28px
+        fontWeight: '700',
+        color: '#1f2937',
+    },
+    mainContent: {
+        paddingVertical: 32,
+        paddingHorizontal: 24,
+        maxWidth: 800,
+        alignSelf: 'center',
+        width: '100%',
+        alignItems: 'center',
+    },
+    
+    // --- Intro Text Styles ---
+    uploadMainSection: {
+        width: '100%',
+        alignItems: 'center',
+    },
+    introTextContainer: {
+        alignItems: 'center',
+        marginBottom: 32, // 2rem
+        maxWidth: 600,
+    },
+    introTitle: {
+        fontSize: 28, // 1.8rem approx
+        fontWeight: '600',
+        color: '#1f2937',
+        marginBottom: 12, // 0.75rem
+        textAlign: 'center',
+    },
+    introSubtitle: {
+        fontSize: 16, // 1rem
+        color: '#6b7280',
+        lineHeight: 24, // 1.6
+        margin: 0,
+        textAlign: 'center',
+    },
 
-    let scoreColor = '#4f46e5';
-    if (analysisResult.score >= 85) scoreColor = '#10b981';
-    else if (analysisResult.score < 60) scoreColor = '#f59e0b';
+    // --- Upload Area ---
+    uploadSection: {
+        width: '100%',
+        maxWidth: 500,
+        marginBottom: 24, // 1.5rem
+        alignItems: 'center',
+    },
+    uploadBox: {
+        borderWidth: 2,
+        borderStyle: 'dashed',
+        borderColor: '#a5b4fc',
+        backgroundColor: '#eef2ff',
+        borderRadius: 8,
+        paddingVertical: 40, // 2.5rem
+        paddingHorizontal: 24, // 1.5rem
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 12, // 0.75rem
+        width: '100%',
+    },
+    uploadText: {
+        color: '#4338ca',
+        fontWeight: '600',
+        fontSize: 18, // 1.1rem approx
+        textAlign: 'center',
+    },
+    uploadHint: {
+        color: '#6b7280',
+        fontSize: 14, // 0.9rem
+        marginTop: 4, // 0.25rem
+        textAlign: 'center',
+    },
+    
+    // --- File Display ---
+    fileDisplayWrapper: {
+        width: '100%',
+        maxWidth: 500,
+        alignItems: 'center',
+        gap: 16, // 1.5rem
+    },
+    fileDisplay: {
+        paddingVertical: 12, // 0.75rem
+        paddingHorizontal: 16, // 1rem
+        backgroundColor: '#fff',
+        borderRadius: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        borderWidth: 1,
+        borderColor: '#d1d5db',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+        elevation: 1,
+        width: '100%',
+        justifyContent: 'space-between',
+    },
+    fileInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        flexShrink: 1,
+        overflow: 'hidden',
+    },
+    fileName: {
+        color: '#1f2937',
+        fontWeight: '500',
+        flexShrink: 1,
+    },
+    fileSizeText: {
+        color: '#6b7280',
+        fontSize: 14,
+        alignSelf: 'flex-start',
+        marginLeft: 16,
+    },
+    removeFileBtn: {
+        padding: 4,
+        flexShrink: 0,
+    },
+    analyzeButton: {
+        backgroundColor: '#4f46e5',
+        paddingVertical: 13, // 0.8rem
+        paddingHorizontal: 32, // 2rem
+        borderRadius: 8,
+        fontWeight: '600',
+        fontSize: 16, // 1rem
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8, // 0.5rem
+        width: '100%',
+        justifyContent: 'center',
+    },
+    analyzeButtonText: {
+        color: 'white',
+        fontWeight: '600',
+        fontSize: 16,
+    },
+    analyzeButtonDisabled: {
+        backgroundColor: '#a5b4fc',
+    },
 
-    return (
-        <div className="results-section">
-            <h2 className="results-title">Analysis Results</h2>
-            <div className="score-display">
-                <div className="score-value" style={{ color: scoreColor }}>{analysisResult.score}</div>
-                <div className="score-label">/ 100</div>
-            </div>
-            <div className="feedback-card overall">
-                <h3>Overall Feedback</h3>
-                <p>{analysisResult.overallFeedback}</p>
-            </div>
-            <div className="feedback-card positive">
-                <h3><ThumbsUp size={20} /> Strengths</h3>
-                <ul>
-                    {analysisResult.positiveAspects.length > 0 ?
-                      analysisResult.positiveAspects.map((item, index) => ( <li key={index}> <CheckCircle size={16} className="list-icon" /> <span>{item}</span> </li> ))
-                      : <li className="no-items">No specific strengths highlighted.</li>
-                    }
-                </ul>
-            </div>
-            <div className="feedback-card improvement">
-                <h3><Lightbulb size={20} /> Areas for Improvement</h3>
-                <ul>
-                     {analysisResult.areasForImprovement.length > 0 ?
-                       analysisResult.areasForImprovement.map((item, index) => ( <li key={index}> <AlertTriangle size={16} className="list-icon" /> <span>{item}</span> </li> ))
-                       : <li className="no-items">No specific areas for improvement suggested.</li>
-                     }
-                </ul>
-            </div>
-        </div>
-    );
-};
+    // --- Status Messages ---
+    statusMessage: {
+        width: '100%',
+        maxWidth: 500,
+        marginTop: 16, // 1rem
+        alignItems: 'center',
+    },
+    errorText: {
+        color: '#ef4444',
+        fontWeight: '500',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        fontSize: 15, // 0.95rem
+    },
+    loadingIndicator: {
+        paddingVertical: 32, // 2rem
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    loadingText: {
+        color: '#4f46e5',
+        fontWeight: '500',
+        fontSize: 16,
+    },
+    spinner: {
+        transform: [{ rotate: '0deg' }], // Animation handled via native driver if possible, or manual Animated in RN
+    },
+
+    // --- Results Section ---
+    resultsSection: {
+        marginTop: 40, // 2.5rem
+        backgroundColor: '#fff',
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        borderRadius: 12,
+        padding: 16, // 1rem
+        width: '100%',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        elevation: 2,
+    },
+    resultsTitle: {
+        textAlign: 'center',
+        fontSize: 24, // 1.5rem
+        fontWeight: '600',
+        color: '#1f2937',
+        marginTop: 8,
+        marginBottom: 24, // 1.5rem
+    },
+
+    // --- Score Display ---
+    scoreDisplay: {
+        alignItems: 'center',
+        marginBottom: 32, // 2rem
+    },
+    scoreValue: {
+        fontSize: 56, // 3.5rem
+        fontWeight: 'bold',
+        lineHeight: 56,
+    },
+    scoreLabel: {
+        fontSize: 16, // 1rem
+        color: '#6b7280',
+        fontWeight: '500',
+    },
+
+    // --- Feedback Card ---
+    feedbackCard: {
+        marginBottom: 24, // 1.5rem
+        padding: 24, // 1.5rem
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        backgroundColor: '#f9fafb',
+    },
+    feedbackCardTitleContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10, // 0.6rem
+        paddingBottom: 12, // 0.75rem
+        borderBottomWidth: 1,
+        borderBottomColor: '#e5e7eb',
+    },
+    feedbackCardHeader: {
+        fontSize: 19, // 1.2rem
+        fontWeight: '600',
+        color: '#1f2937',
+        margin: 0,
+    },
+    feedbackCardParagraph: {
+        color: '#374151',
+        lineHeight: 25.5, // 1.7
+        marginTop: 12,
+        fontSize: 15, // 0.95rem
+    },
+    feedbackCardList: {
+        marginTop: 8, // 0.5rem
+        // RN equivalent of ul
+    },
+    feedbackCardListItem: {
+        color: '#374151',
+        lineHeight: 25.5, // 1.7
+        marginBottom: 12, // 0.75rem
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        gap: 12, // 0.75rem
+    },
+    feedbackCardListItemText: {
+        fontSize: 15, // 0.95rem
+        flexShrink: 1,
+        color: '#374151',
+    },
+    listIcon: {
+        marginTop: 4, // Aligns icon with text line-height
+        flexShrink: 0,
+    },
+    noItems: {
+        fontStyle: 'italic',
+        color: '#6b7280',
+    },
+
+    // Card Specific Colors
+    feedbackCardOverall: {
+        backgroundColor: '#fff',
+        borderColor: '#e5e7eb',
+    },
+    feedbackCardPositive: {
+        backgroundColor: '#f0fdf4',
+        borderColor: '#bbf7d0',
+    },
+    feedbackCardHeaderPositive: {
+        color: '#15803d',
+    },
+    feedbackCardImprovement: {
+        backgroundColor: '#fffbeb',
+        borderColor: '#fde68a',
+    },
+    feedbackCardHeaderImprovement: {
+        color: '#b45309',
+    },
+});

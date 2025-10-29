@@ -1,49 +1,76 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Loader2, Briefcase, Brain, Clock, Award, Calendar, Send, CheckCircle, Hourglass,DollarSign } from 'lucide-react'; // Added icons
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import {
+  SafeAreaView,
+  ScrollView,
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  ActivityIndicator,
+  Image,
+  Alert,
+  Linking, // To open ID proof URL
+} from 'react-native';
+import { ArrowLeft, Loader2, Briefcase, Brain, Clock, Award, Calendar, Send, CheckCircle, Hourglass, DollarSign, FileText } from 'lucide-react-native'; // Native icons
+import { useRouter, useLocalSearchParams, Link } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Helper component for rendering detail cards
+function DetailCard({ Icon, title, value }) {
+  return (
+    <View style={styles.detailCard}>
+      <View style={styles.detailIcon}>
+        <Icon size={20} color="#4f46e5" />
+      </View>
+      <View style={styles.detailTextContent}>
+        <Text style={styles.detailTitle}>{title}</Text>
+        <Text style={styles.detailValue}>{value}</Text>
+      </View>
+    </View>
+  );
+}
 
 export default function MentorProfile() {
   const router = useRouter();
+  // useLocalSearchParams is correct for reading the [id] slug
   const { id } = useLocalSearchParams(); 
 
   const [mentor, setMentor] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState(null);
 
-  // --- NEW STATE ---
-  const [connectionStatus, setConnectionStatus] = useState('loading'); // 'loading', 'none', 'pending', 'accepted', 'rejected'
-  const [isRequesting, setIsRequesting] = useState(false); // Loading state for the button
-  const [userRole, setUserRole] = useState(null); // To show/hide button based on role
+  const [connectionStatus, setConnectionStatus] = useState('loading');
+  const [isRequesting, setIsRequesting] = useState(false);
+  const [userRole, setUserRole] = useState(null);
+  const [currentUserId, setCurrentUserId] = useState(null); // To prevent users from connecting to themselves
 
   useEffect(() => {
-    // Check user role
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUserRole(JSON.parse(storedUser).role);
-    }
-
     if (!id) return; 
 
-    // Fetch both mentor profile and connection status
     const fetchData = async () => {
       setIsLoading(true);
       setFetchError(null);
       setConnectionStatus('loading');
-      const token = localStorage.getItem("token");
+      
+      const token = await AsyncStorage.getItem("token");
+      const storedUserString = await AsyncStorage.getItem('user');
+      const storedUser = storedUserString ? JSON.parse(storedUserString) : null;
+      
+      setUserRole(storedUser?.role);
+      setCurrentUserId(storedUser?._id);
 
       try {
-        // Fetch profile (Promise 1)
+        // 1. Fetch mentor profile
         const profilePromise = fetch(`https://placemate-ru7v.onrender.com/api/mentors/${id}`);
         
-        // Fetch connection status (Promise 2) - only if logged in as user
-        let statusPromise = Promise.resolve(null); // Default for non-users
-        if (token && JSON.parse(storedUser)?.role === 'user') { 
+        // 2. Fetch connection status (only if logged in as a 'user' and a token exists)
+        let statusPromise = Promise.resolve(null);
+        if (token && storedUser?.role === 'user' && storedUser?._id !== id) {
           statusPromise = fetch(`https://placemate-ru7v.onrender.com/api/connections/status/${id}`, {
             headers: { "Authorization": `Bearer ${token}` }
           });
         }
 
-        // Wait for both fetches
         const [profileRes, statusRes] = await Promise.all([profilePromise, statusPromise]);
 
         // Process profile response
@@ -55,15 +82,14 @@ export default function MentorProfile() {
         // Process status response (if applicable)
         if (statusRes) {
           if (!statusRes.ok) { 
-            // Handle errors like invalid token, but don't block profile view
             console.error("Failed to fetch connection status:", statusRes.statusText);
-            setConnectionStatus('none'); // Assume no connection on error
+            setConnectionStatus('none');
           } else {
             const statusData = await statusRes.json();
-            setConnectionStatus(statusData.status);
+            setConnectionStatus(statusData.status || 'none');
           }
         } else {
-             setConnectionStatus('none'); // Not logged in as user or no token
+          setConnectionStatus('none');
         }
 
       } catch (error) {
@@ -77,11 +103,11 @@ export default function MentorProfile() {
     fetchData();
   }, [id]);
 
-  // --- UPDATED: Makes the actual API call ---
+  // Makes the actual API call
   const handleRequestConnection = async () => {
-    const token = localStorage.getItem("token");
+    const token = await AsyncStorage.getItem("token");
     if (!token || userRole !== 'user') {
-      alert("Please log in as a student to connect.");
+      Alert.alert("Login Required", "Please log in as a student to send a connection request.");
       router.push('/');
       return;
     }
@@ -98,193 +124,390 @@ export default function MentorProfile() {
       });
 
       const data = await res.json();
-      if (!res.ok && res.status !== 400) { // Allow 400 for "already sent"
-        throw new Error(data.message || "Failed to send request.");
+      
+      let message = data.message || "Request sent!";
+      
+      if (!res.ok) {
+        if (res.status === 400) {
+           message = data.message || "Request already sent or connection exists.";
+        } else {
+           throw new Error(data.message || "Failed to send request.");
+        }
       }
       
-      alert(data.message || "Request sent!"); 
-      setConnectionStatus('pending'); // Update button state immediately
+      Alert.alert("Status", message); 
+      setConnectionStatus('pending'); 
       
     } catch (err) {
-      alert(`Error: ${err.message}`);
+      Alert.alert("Error", err.message);
       console.error(err);
     } finally {
-       setIsRequesting(false);
+      setIsRequesting(false);
     }
   };
   
-  // --- NEW: Placeholder for booking ---
+  // Placeholder for booking
   const handleBookSession = () => {
-      // This would navigate to a new booking page:
-      router.push(`/mentorconnect/book/${id}`); 
-     // alert(`Navigating to booking page for ${mentor.fullName}... (Not implemented yet)`);
+    // This assumes you have a dynamic booking page named 'book' inside mentorconnect
+    // The path would be /mentorconnect/book/[id]
+    router.push(`/mentorconnect/book/${id}`); 
   };
 
-  // --- UPDATED: Renders availability slots and conditional button ---
+  const renderActionButton = () => {
+    // 1. If it's the mentor's own profile, show nothing or a message
+    if (mentor && mentor._id === currentUserId) {
+        return <Text style={styles.selfProfileText}>This is your mentor profile.</Text>;
+    }
+    
+    // 2. If not a user, show nothing
+    if (userRole !== 'user') {
+        return null; 
+    }
+
+    // 3. Conditional Button Logic for 'user' role
+    if (connectionStatus === 'loading') {
+      return (
+        <View style={[styles.connectButton, styles.disabledButton]}>
+          <ActivityIndicator size="small" color="#eef2ff" style={{ marginRight: 8 }} />
+          <Text style={styles.disabledButtonText}>Checking Status...</Text>
+        </View>
+      );
+    } else if (connectionStatus === 'none' || connectionStatus === 'rejected') {
+      return (
+        <Pressable 
+          style={styles.connectButton} 
+          onPress={handleRequestConnection} 
+          disabled={isRequesting}
+        >
+          {isRequesting ? 
+            <ActivityIndicator size="small" color="white" style={{ marginRight: 8 }} /> 
+            : <Send size={18} color="white" style={{ marginRight: 8 }} />
+          }
+          <Text style={styles.connectButtonText}>Request Connection</Text>
+        </Pressable>
+      );
+    } else if (connectionStatus === 'pending') {
+      return (
+        <View style={[styles.connectButton, styles.disabledButton]}>
+          <Hourglass size={18} color="#eef2ff" style={{ marginRight: 8 }} />
+          <Text style={styles.disabledButtonText}>Request Sent</Text>
+        </View>
+      );
+    } else if (connectionStatus === 'accepted') {
+      return (
+        <Pressable 
+          style={[styles.connectButton, styles.bookButton]} 
+          onPress={handleBookSession}
+        >
+          <Calendar size={18} color="white" style={{ marginRight: 8 }} />
+          <Text style={styles.connectButtonText}>Book a Session</Text>
+        </Pressable>
+      );
+    }
+    return null;
+  };
+  
   const renderContent = () => {
     if (isLoading) {
-      return <p className="info-text"><Loader2 size={24} className="spinner" /> Loading profile...</p>;
+      return (
+        <View style={styles.infoContainer}>
+            <ActivityIndicator size="large" color="#4f46e5" />
+            <Text style={styles.infoText}>Loading profile...</Text>
+        </View>
+      );
     }
     if (fetchError) {
-      return <p className="error-text">{fetchError}</p>;
+      return <Text style={styles.errorText}>{fetchError}</Text>;
     }
     if (!mentor) {
-      return <p className="info-text">No mentor data available.</p>;
+      return <Text style={styles.infoText}>Mentor data is unavailable.</Text>;
     }
-
-    // --- Conditional Button Logic ---
-    let actionButton = null;
-    if (userRole === 'user') { // Only show button for logged-in students
-        if (connectionStatus === 'loading') {
-            actionButton = <button className="connect-button disabled-button" disabled><Loader2 size={18} className="spinner"/> Checking Status...</button>;
-        } else if (connectionStatus === 'none') {
-            actionButton = <button className="connect-button" onClick={handleRequestConnection} disabled={isRequesting}>{isRequesting ? <Loader2 size={18} className="spinner"/> : <Send size={18}/>} Request Connection</button>;
-        } else if (connectionStatus === 'pending') {
-            actionButton = <button className="connect-button disabled-button" disabled><Hourglass size={18}/> Request Sent</button>;
-        } else if (connectionStatus === 'accepted') {
-            actionButton = <button className="connect-button book-button" onClick={handleBookSession}><Calendar size={18}/> Book a Session</button>;
-        } else if (connectionStatus === 'rejected') {
-            actionButton = <button className="connect-button disabled-button" disabled>Request Not Accepted</button>;
-        }
-    }
-
-    console.log('Mentor data received:', mentor);
-
 
     return (
-      <div className="profile-content">
-        <img 
-          src={mentor.profilePic || 'https://via.placeholder.com/150'} 
-          alt={`${mentor.fullName} profile`} 
-          className="profile-avatar"
+      <View style={styles.profileContent}>
+        <Image 
+          source={{ uri: mentor.profilePic || 'https://via.placeholder.com/150' }}
+          style={styles.profileAvatar}
         />
-        <h1 className="profile-name">{mentor.fullName}</h1>
-        <p className="profile-title">{mentor.jobTitle} at {mentor.company}</p>
+        <Text style={styles.profileName}>{mentor.fullName}</Text>
+        <Text style={styles.profileTitle}>{mentor.jobTitle} at {mentor.company}</Text>
         
-        {/* Render the conditional button */}
-        {actionButton}
+        {renderActionButton()}
         
-        <div className="profile-divider"></div>
+        <View style={styles.profileDivider} />
         
         {/* --- Availability Section --- */}
-        <h2 className="section-title">Availability</h2>
-        <div className="availability-list">
-            {mentor.availabilitySlots && mentor.availabilitySlots.length > 0 ? (
-                mentor.availabilitySlots.map((slot, index) => (
-                    <div key={index} className="availability-slot">
-                        <span className="slot-day">{slot.day}</span>
-                        <span className="slot-time">{slot.startTime} - {slot.endTime}</span>
-                    </div>
-                ))
-            ) : (
-                <p className='no-slots-text'>Availability not set by mentor.</p>
-            )}
-        </div>
+        <Text style={styles.sectionTitle}>Availability</Text>
+        <View style={styles.availabilityList}>
+          {mentor.availabilitySlots && mentor.availabilitySlots.length > 0 ? (
+            mentor.availabilitySlots.map((slot, index) => (
+              <View key={index} style={styles.availabilitySlot}>
+                <Text style={styles.slotDay}>{slot.day}</Text>
+                <Text style={styles.slotTime}>{slot.startTime} - {slot.endTime}</Text>
+              </View>
+            ))
+          ) : (
+            <Text style={styles.noSlotsText}>Availability not set by mentor.</Text>
+          )}
+        </View>
 
-         <div className="profile-divider"></div>
+        <View style={styles.profileDivider} />
 
-        <h2 className="section-title">Details</h2>
-        <div className="details-grid">
+        <Text style={styles.sectionTitle}>Details</Text>
+        <View style={styles.detailsGrid}>
           <DetailCard Icon={Briefcase} title="Experience" value={`${mentor.experience || 'N/A'} years`} />
           <DetailCard Icon={Award} title="Qualification" value={mentor.qualification || 'N/A'} />
           <DetailCard Icon={Brain} title="Areas of Expertise" value={mentor.expertise || 'N/A'} />
-          {/* Removed old Availability/Hours cards */}
-          {/* --- ADD FEES CARD --- */}
           <DetailCard
             Icon={DollarSign}
             title="Session Fee"
-            // Display 'Free' if fees are 0 or not set, otherwise format (e.g., INR)
             value={mentor.fees > 0 ? `₹${mentor.fees}` : 'Free'}
           />
-          {/* --- END FEES CARD --- */}
-        </div>
-      </div>
+        </View>
+      </View>
     );
   };
 
   return (
-    <>
-      <style>{`
-        /* --- Base Styles (mostly unchanged) --- */
-        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafe; }
-        .page-container { display: flex; flex-direction: column; min-height: 100vh;overflow-y: auto; }
-        .header-container { display: flex; align-items: center; padding: 1.25rem 1.5rem; background-color: #fff; border-bottom: 1px solid #e5e7eb; }
-        .back-button { padding: 0.5rem; background-color: #eef2ff; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; text-decoration: none; margin-right: 1rem; }
-        .header-title { font-size: 1.75rem; font-weight: 700; color: #111827; }
-        .main-content { padding: 2rem 1.5rem; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; }
-        .profile-content { display: flex; flex-direction: column; align-items: center; }
-        .profile-avatar { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid #fff; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 1rem; }
-        .profile-name { font-size: 2rem; font-weight: 700; color: #111827; margin: 0; }
-        .profile-title { font-size: 1.1rem; color: #4f46e5; margin: 0.25rem 0; font-weight: 500; }
-        .profile-divider { height: 1px; background-color: #e5e7eb; margin: 2rem 0; width: 100%; }
-        
-        /* --- Button Styles --- */
-        .connect-button { display: inline-flex; align-items: center; gap: 0.5rem; background-color: #4f46e5; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; margin-top: 1.5rem; font-size: 1rem; }
-        .connect-button:hover { background-color: #4338ca; }
-        .connect-button .spinner { margin-right: 0.5rem; }
-        .disabled-button { background-color: #a5b4fc; color: #eef2ff; cursor: not-allowed; }
-        .disabled-button:hover { background-color: #a5b4fc; }
-        .book-button { background-color: #10b981; } /* Green for booking */
-        .book-button:hover { background-color: #059669; }
+    <SafeAreaView style={styles.pageContainer}>
+      <View style={styles.headerContainer}>
+        <Pressable onPress={() => router.back()} style={styles.backButton} title="Back to list">
+          <ArrowLeft size={24} color="#4f46e5" />
+        </Pressable>
+        <Text style={styles.headerTitle}>Mentor Profile</Text>
+      </View>
 
-        /* --- Details Grid Styles (unchanged) --- */
-        .details-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; width: 100%; }
-        @media (min-width: 640px) { .details-grid { grid-template-columns: repeat(2, 1fr); } }
-        .detail-card { background-color: #fff; border: 1px solid #e5e7eb; border-radius: 0.75rem; padding: 1.5rem; display: flex; align-items: flex-start; gap: 1rem; }
-        .detail-icon { flex-shrink: 0; width: 40px; height: 40px; border-radius: 50%; background-color: #eef2ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; }
-        .detail-text-content { display: flex; flex-direction: column; }
-        .detail-title { font-size: 0.85rem; color: #6b7280; font-weight: 600; text-transform: uppercase; margin: 0 0 0.25rem 0; }
-        .detail-value { font-size: 1rem; color: #1f2937; font-weight: 500; margin: 0; line-height: 1.5; word-break: break-word; }
-
-        /* --- NEW Availability Styles --- */
-        .section-title { font-size: 1.25rem; font-weight: 600; color: #1f2937; margin-bottom: 1rem; width: 100%; text-align: left; }
-        .availability-list { 
-            display: flex; flex-direction: column; gap: 0.75rem; 
-            width: 100%; background-color: #fff; border: 1px solid #e5e7eb; 
-            border-radius: 0.75rem; padding: 1.5rem;
-        }
-        .availability-slot { display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #f3f4f6; }
-        .availability-slot:last-child { border-bottom: none; }
-        .slot-day { font-weight: 600; color: #1f2937; flex-basis: 120px; }
-        .slot-time { font-weight: 500; color: #4b5563; }
-        .no-slots-text { color: #6b7280; font-style: italic; text-align: center; padding: 1rem 0;}
-
-        /* --- Utility Styles --- */
-        .info-text, .error-text { text-align: center; color: #6b7280; font-size: 1rem; padding: 4rem 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
-        .error-text { color: #ef4444; font-weight: 500; }
-        .spinner { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
-
-      <div className="page-container">
-        <header className="header-container">
-          <button onClick={() => router.back()} className="back-button" title="Back to list">
-            <ArrowLeft size={24} color="#4f46e5" />
-          </button>
-          <h1 className="header-title">Mentor Profile</h1>
-        </header>
-
-        <main className="main-content">
-          {renderContent()}
-        </main>
-      </div>
-    </>
+      <ScrollView contentContainerStyle={styles.mainContent}>
+        {renderContent()}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 // Helper component (unchanged)
-// Helper component for rendering detail cards
-function DetailCard({ Icon, title, value }) {
-  return (
-    <div className="detail-card">
-      <div className="detail-icon">
-        <Icon size={20} />
-      </div>
-      <div className="detail-text-content">
-        <h3 className="detail-title">{title}</h3>
-        {/* It uses the 'value' prop here */}
-        <p className="detail-value">{value}</p> 
-      </div>
-    </div>
-  );
-}
+// Helper component for rendering detail cards (React Native)
+// Note: This needs to be outside the main component scope or defined here.
+// We define it inside the file scope for simplicity.
+
+
+// --- StyleSheet ---
+const styles = StyleSheet.create({
+  pageContainer: {
+    flex: 1,
+    backgroundColor: '#f9fafe',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  backButton: {
+    padding: 8,
+    backgroundColor: '#eef2ff',
+    borderRadius: 20,
+    marginRight: 16,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  mainContent: {
+    padding: 24,
+    maxWidth: 800,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  infoContainer: {
+    paddingVertical: 64,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoText: {
+    color: '#6b7280',
+    fontSize: 18,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 18,
+    fontWeight: '500',
+    paddingVertical: 64,
+    textAlign: 'center',
+  },
+  profileContent: {
+    alignItems: 'center',
+    width: '100%',
+  },
+  profileAvatar: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    resizeMode: 'cover',
+    borderWidth: 4,
+    borderColor: '#fff',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 5,
+    marginBottom: 16,
+  },
+  profileName: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  profileTitle: {
+    fontSize: 18,
+    color: '#4f46e5',
+    marginBottom: 24,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+  profileDivider: {
+    height: 1,
+    backgroundColor: '#e5e7eb',
+    marginVertical: 32,
+    width: '100%',
+  },
+  // --- Button Styles ---
+  connectButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#4f46e5',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    marginTop: 24,
+    shadowColor: '#4f46e5',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  connectButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  disabledButton: {
+    backgroundColor: '#a5b4fc',
+    shadowColor: 'transparent',
+    elevation: 0,
+  },
+  disabledButtonText: {
+    color: '#eef2ff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  bookButton: {
+    backgroundColor: '#10b981', // Green for booking
+  },
+  selfProfileText: {
+    color: '#d97706',
+    fontWeight: '600',
+    fontSize: 16,
+    marginTop: 24,
+    padding: 8,
+    backgroundColor: '#fffbeb',
+    borderRadius: 8,
+  },
+  // --- Details Grid Styles ---
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#1f2937',
+    marginBottom: 16,
+    width: '100%',
+    textAlign: 'left',
+  },
+  detailsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 16,
+  },
+  detailCard: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 16,
+    width: '100%',
+    minWidth: '48%',
+    flexGrow: 1,
+  },
+  detailIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#eef2ff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  detailTextContent: {
+    flexDirection: 'column',
+    flex: 1,
+  },
+  detailTitle: {
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    marginBottom: 4,
+  },
+  detailValue: {
+    fontSize: 16,
+    color: '#1f2937',
+    fontWeight: '500',
+    lineHeight: 22,
+  },
+  // --- Availability Styles ---
+  availabilityList: {
+    flexDirection: 'column',
+    gap: 12,
+    width: '100%',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    padding: 24,
+  },
+  availabilitySlot: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+  },
+  slotDay: {
+    fontWeight: '600',
+    color: '#1f2937',
+    fontSize: 16,
+  },
+  slotTime: {
+    fontWeight: '500',
+    color: '#4b5563',
+    fontSize: 16,
+  },
+  noSlotsText: {
+    color: '#6b7280',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 16,
+  },
+});

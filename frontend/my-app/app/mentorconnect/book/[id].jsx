@@ -1,12 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Loader2, Calendar, Clock, Check, Send } from 'lucide-react'; // Changed CheckCircle to Send for request
+import {
+  SafeAreaView,
+  ScrollView,
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  ActivityIndicator,
+  Modal,
+  Alert,
+} from 'react-native';
+import { ArrowLeft, Loader2, Calendar, Clock, Send, AlertTriangle } from 'lucide-react-native'; // Native icons
 import { useRouter, useLocalSearchParams } from 'expo-router';
-
 import dayjs from 'dayjs';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function BookSession() {
   const router = useRouter();
-  const { id: mentorId } = useLocalSearchParams();
+  // id is the mentorId from the URL slug
+  const { id: mentorId } = useLocalSearchParams(); 
 
   const [availableSlots, setAvailableSlots] = useState([]);
   const [groupedSlots, setGroupedSlots] = useState({});
@@ -15,67 +27,68 @@ export default function BookSession() {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [isBooking, setIsBooking] = useState(false);
   const [bookingError, setBookingError] = useState(null);
-  const [showSuccessModal, setShowSuccessModal] = useState(false); // Reusing modal for "Request Sent"
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   useEffect(() => {
-    // ... (fetchAvailableSlots function remains the same) ...
-        if (!mentorId) return;
+    if (!mentorId) return;
 
-        const fetchAvailableSlots = async () => {
-          setIsLoading(true);
-          setFetchError(null);
-          const token = localStorage.getItem("token");
+    const fetchAvailableSlots = async () => {
+      setIsLoading(true);
+      setFetchError(null);
+      const token = await AsyncStorage.getItem("token"); // Use AsyncStorage
 
-          try {
-            const res = await fetch(`https://placemate-ru7v.onrender.com/api/bookings/available/${mentorId}`, {
-              headers: { "Authorization": `Bearer ${token}` }
-            });
-            if (!res.ok) {
-              const errData = await res.json();
-              throw new Error(errData.message || "Could not load available slots.");
-            }
-            const data = await res.json();
-            setAvailableSlots(data);
-            groupSlotsByDate(data);
-          } catch (err) {
-            setFetchError(err.message);
-          } finally {
-            setIsLoading(false);
-          }
-        };
+      try {
+        const res = await fetch(`https://placemate-ru7v.onrender.com/api/bookings/available/${mentorId}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.message || "Could not load available slots.");
+        }
+        const data = await res.json();
+        setAvailableSlots(data);
+        groupSlotsByDate(data);
+      } catch (err) {
+        setFetchError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-        fetchAvailableSlots();
+    fetchAvailableSlots();
   }, [mentorId]);
 
   const groupSlotsByDate = (slots) => {
-    // ... (groupSlotsByDate function remains the same) ...
-        const groups = {};
-        slots.forEach(slot => {
-          const dateStr = dayjs(slot.startTime).format('dddd, MMMM D');
-          if (!groups[dateStr]) {
-            groups[dateStr] = [];
-          }
-          groups[dateStr].push(slot);
-        });
-        setGroupedSlots(groups);
+    const groups = {};
+    slots.forEach(slot => {
+      // Use dayjs for formatting the date header
+      const dateStr = dayjs(slot.startTime).format('dddd, MMMM D');
+      if (!groups[dateStr]) {
+        groups[dateStr] = [];
+      }
+      groups[dateStr].push(slot);
+    });
+    setGroupedSlots(groups);
   };
 
   const handleSelectSlot = (slot) => {
-    // ... (handleSelectSlot function remains the same) ...
-        setSelectedSlot(slot);
-        setBookingError(null);
+    setSelectedSlot(slot);
+    setBookingError(null);
   };
 
-  // --- MODIFIED: Handle Confirm Booking Request ---
+  // --- Handle Confirm Booking Request ---
   const handleConfirmBooking = async () => {
-    if (!selectedSlot) return;
+    if (!selectedSlot) {
+        setBookingError("Please select an available time slot first.");
+        return;
+    }
 
     setIsBooking(true);
     setBookingError(null);
-    const token = localStorage.getItem("token");
+    const token = await AsyncStorage.getItem("token"); // Use AsyncStorage
 
     try {
-      const res = await fetch(`https://placemate-ru7v.onrender.com/api/bookings`, { // Calls the same createBooking endpoint
+      const res = await fetch(`https://placemate-ru7v.onrender.com/api/bookings`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -89,10 +102,18 @@ export default function BookSession() {
       });
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.message || "Failed to send booking request."); // Updated error message
+        throw new Error(data.message || "Failed to send booking request.");
       }
       // Request successful! Show the "Request Sent" modal.
       setShowSuccessModal(true);
+      
+      // Optionally remove the booked slot from the list locally
+      setGroupedSlots(prevGroups => {
+          const newGroups = { ...prevGroups };
+          // Logic to find and remove the booked slot goes here if needed
+          return newGroups;
+      });
+
     } catch (err) {
       setBookingError(err.message);
     } finally {
@@ -101,122 +122,302 @@ export default function BookSession() {
   };
 
   const renderSlots = () => {
-    // ... (renderSlots function remains the same) ...
-        if (isLoading) {
-          return <p className="info-text"><Loader2 size={20} className="spinner" /> Loading available times...</p>;
-        }
-        if (fetchError) {
-          return <p className="error-text">{fetchError}</p>;
-        }
-        if (Object.keys(groupedSlots).length === 0) {
-          return <p className="info-text">No available slots found for the next 7 days.</p>;
-        }
+    if (isLoading) {
+      return (
+        <View style={styles.infoContainer}>
+          <ActivityIndicator size="large" color="#4f46e5" />
+          <Text style={styles.infoText}>Loading available times...</Text>
+        </View>
+      );
+    }
+    if (fetchError) {
+      return (
+        <View style={styles.infoContainer}>
+          <AlertTriangle size={20} color="#ef4444" style={{ marginBottom: 8 }}/>
+          <Text style={styles.errorText}>{fetchError}</Text>
+        </View>
+      );
+    }
+    if (Object.keys(groupedSlots).length === 0) {
+      return <Text style={styles.infoText}>No available slots found for the next 7 days.</Text>;
+    }
 
-        return Object.entries(groupedSlots).map(([date, slotsOnDate]) => (
-          <div key={date} className="date-group">
-            <h3 className="date-header">{date}</h3>
-            <div className="slots-grid">
+    return (
+      <View>
+        {Object.entries(groupedSlots).map(([date, slotsOnDate]) => (
+          <View key={date} style={styles.dateGroup}>
+            <Text style={styles.dateHeader}>{date}</Text>
+            <View style={styles.slotsGrid}>
               {slotsOnDate.map((slot, index) => (
-                <button
+                <Pressable
                   key={index}
-                  className={`slot-button ${selectedSlot?.startTime === slot.startTime ? 'selected' : ''}`}
-                  onClick={() => handleSelectSlot(slot)}
+                  style={[
+                    styles.slotButton,
+                    selectedSlot?.startTime === slot.startTime && styles.slotButtonSelected
+                  ]}
+                  onPress={() => handleSelectSlot(slot)}
                 >
-                  {dayjs(slot.startTime).format('h:mm A')}
-                </button>
+                  <Text style={[
+                      styles.slotButtonText,
+                      selectedSlot?.startTime === slot.startTime && styles.slotButtonTextSelected
+                  ]}>
+                    {dayjs(slot.startTime).format('h:mm A')}
+                  </Text>
+                </Pressable>
               ))}
-            </div>
-          </div>
-        ));
+            </View>
+          </View>
+        ))}
+      </View>
+    );
   };
 
   return (
-    <>
-      <style>{`
-        /* --- Styles (mostly unchanged, check modal styles) --- */
-        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafe; }
-        .page-container { display: flex; flex-direction: column; min-height: 100vh; overflow-y: auto; }
-        .header-container { display: flex; align-items: center; padding: 1.25rem 1.5rem; background-color: #fff; border-bottom: 1px solid #e5e7eb; }
-        .back-button { padding: 0.5rem; background-color: #eef2ff; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; margin-right: 1rem; }
-        .header-title { font-size: 1.75rem; font-weight: 700; color: #111827; }
-        .main-content { padding: 2rem 1.5rem; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; }
-        .date-group { margin-bottom: 2rem; background-color: #fff; border-radius: 8px; border: 1px solid #e5e7eb; overflow: hidden;}
-        .date-header { background-color: #f9fafb; padding: 0.75rem 1.25rem; font-size: 1rem; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb; margin: 0; }
-        .slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 0.75rem; padding: 1.25rem; }
-        .slot-button { background-color: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; padding: 0.75rem; border-radius: 6px; font-weight: 600; cursor: pointer; text-align: center; font-size: 0.9rem; transition: background-color 0.2s, border-color 0.2s, color 0.2s; }
-        .slot-button:hover { background-color: #e0e7ff; border-color: #a5b4fc; }
-        .slot-button.selected { background-color: #4f46e5; color: white; border-color: #4f46e5; }
-        .confirmation-section { margin-top: 2rem; padding: 1.5rem; background-color: #fff; border-radius: 8px; border: 1px solid #e5e7eb; text-align: center; }
-        .confirm-title { font-size: 1.1rem; font-weight: 600; margin: 0 0 1rem 0; }
-        .confirm-details { color: #4f46e5; font-weight: 500; margin-bottom: 1.5rem; }
-        .confirm-button { /* Now styled for sending request */
-            background-color: #4f46e5; color: white; border: none; padding: 0.75rem 2rem;
-            border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 1rem;
-            display: inline-flex; align-items: center; gap: 0.5rem; transition: background-color 0.2s;
-        }
-        .confirm-button:hover { background-color: #4338ca; }
-        .confirm-button:disabled { background-color: #a5b4fc; cursor: not-allowed; }
-        .info-text, .error-text { text-align: center; color: #6b7280; font-size: 1rem; padding: 2rem 1rem; }
-        .error-text { color: #ef4444; font-weight: 500; }
-        .spinner { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .modal-overlay { position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center; padding: 1rem; z-index: 100; }
-        .modal-box { background-color: #fff; border-radius: 0.75rem; padding: 2rem; width: 100%; max-width: 24rem; text-align: center; }
-        .modal-icon { font-size: 3rem; margin-bottom: 1rem; line-height: 1; color: #4f46e5; /* Color changed for request */ }
-        .modal-title { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
-        .modal-subtitle { color: #4b5563; margin-bottom: 1.5rem; }
-        .modal-button { width: 100%; background-color: #4f46e5; color: #fff; padding: 0.75rem; border-radius: 0.5rem; font-weight: 700; font-size: 1rem; border: none; cursor: pointer; }
-      `}</style>
-      <div className="page-container">
-        <header className="header-container">
-          <button onClick={() => router.back()} className="back-button" title="Back to Profile">
-            <ArrowLeft size={24} color="#4f46e5" />
-          </button>
-          <h1 className="header-title">Book Session</h1>
-        </header>
+    <SafeAreaView style={styles.pageContainer}>
+      <View style={styles.headerContainer}>
+        <Pressable onPress={() => router.back()} style={styles.backButton} title="Back to Profile">
+          <ArrowLeft size={24} color="#4f46e5" />
+        </Pressable>
+        <Text style={styles.headerTitle}>Book Session</Text>
+      </View>
 
-        <main className="main-content">
-          {renderSlots()}
+      <ScrollView contentContainerStyle={styles.mainContent}>
+        {renderSlots()}
 
-          {selectedSlot && (
-            <div className="confirmation-section">
-              <h2 className="confirm-title">Request Session Time</h2>
-              <p className="confirm-details">
-                {dayjs(selectedSlot.startTime).format('dddd, MMMM D')} <br />
-                {dayjs(selectedSlot.startTime).format('h:mm A')} - {dayjs(selectedSlot.endTime).format('h:mm A')}
-              </p>
-              {bookingError && <p className="error-text" style={{padding: '0 0 1rem 0'}}>{bookingError}</p>}
-              <button
-                className="confirm-button" // Button text changed below
-                onClick={handleConfirmBooking}
-                disabled={isBooking}
-              >
-                {isBooking ? <Loader2 size={18} className="spinner" /> : <Send size={18} />}
+        {selectedSlot && (
+          <View style={styles.confirmationSection}>
+            <Text style={styles.confirmTitle}>Request Session Time</Text>
+            <Text style={styles.confirmDetails}>
+              {dayjs(selectedSlot.startTime).format('dddd, MMMM D')}
+            </Text>
+            <Text style={styles.confirmDetailsTime}>
+              {dayjs(selectedSlot.startTime).format('h:mm A')} - {dayjs(selectedSlot.endTime).format('h:mm A')}
+            </Text>
+            
+            {bookingError && <Text style={styles.errorText}><AlertTriangle size={16} /> {bookingError}</Text>}
+
+            <Pressable
+              style={styles.confirmButton}
+              onPress={handleConfirmBooking}
+              disabled={isBooking}
+            >
+              {isBooking ? 
+                <ActivityIndicator size="small" color="white" /> 
+                : <Send size={18} color="white" />
+              }
+              <Text style={styles.confirmButtonText}>
                 {isBooking ? 'Sending...' : 'Send Request'}
-              </button>
-            </div>
-          )}
-        </main>
-      </div>
-
-      {/* --- MODIFIED Success Modal --- */}
-        {showSuccessModal && (
-          <div className="modal-overlay">
-            <div className="modal-box">
-              <p className="modal-icon"><Send /></p> {/* Icon changed */}
-              <h2 className="modal-title">Request Sent!</h2> {/* Title changed */}
-              <p className="modal-subtitle">
-                Your request has been sent to the mentor. You will be notified when they respond. {/* Subtitle changed */}
-              </p>
-              <button
-                onClick={() => router.back()} // Redirect back to mentor profile
-                className="modal-button"
-              >
-                OK
-              </button>
-            </div>
-          </div>
+              </Text>
+            </Pressable>
+          </View>
         )}
-    </>
+      </ScrollView>
+
+      {/* --- Success Modal --- */}
+      <Modal
+        visible={showSuccessModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => router.back()}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Send size={48} color="#4f46e5" style={styles.modalIcon} />
+            <Text style={styles.modalTitle}>Request Sent!</Text>
+            <Text style={styles.modalSubtitle}>
+              Your request has been sent to the mentor. You will be notified when they respond.
+            </Text>
+            <Pressable
+              onPress={() => router.back()} // Redirect back to mentor profile or my-bookings
+              style={styles.modalButton}
+            >
+              <Text style={styles.modalButtonText}>OK</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 }
+
+// --- StyleSheet ---
+const styles = StyleSheet.create({
+  pageContainer: {
+    flex: 1,
+    backgroundColor: '#f9fafe',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  backButton: {
+    padding: 8,
+    backgroundColor: '#eef2ff',
+    borderRadius: 20,
+    marginRight: 16,
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  mainContent: {
+    padding: 24,
+    maxWidth: 800,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  infoContainer: {
+    paddingVertical: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  infoText: {
+    color: '#6b7280',
+    fontSize: 16,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  errorText: {
+    color: '#ef4444',
+    fontWeight: '500',
+    fontSize: 16,
+    marginTop: 16,
+    textAlign: 'center',
+  },
+  dateGroup: {
+    marginBottom: 24,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    overflow: 'hidden',
+  },
+  dateHeader: {
+    backgroundColor: '#f9fafb',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  slotsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    padding: 20,
+  },
+  slotButton: {
+    backgroundColor: '#eef2ff',
+    borderWidth: 1,
+    borderColor: '#c7d2fe',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 6,
+    minWidth: 100,
+    alignItems: 'center',
+  },
+  slotButtonText: {
+    color: '#4338ca',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  slotButtonSelected: {
+    backgroundColor: '#4f46e5',
+    borderColor: '#4f46e5',
+  },
+  slotButtonTextSelected: {
+    color: 'white',
+  },
+  // --- Confirmation Section ---
+  confirmationSection: {
+    marginTop: 32,
+    padding: 24,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    alignItems: 'center',
+  },
+  confirmTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    marginBottom: 8,
+    color: '#1f2937',
+  },
+  confirmDetails: {
+    color: '#4f46e5',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  confirmDetailsTime: {
+    color: '#4f46e5',
+    fontWeight: '500',
+    marginBottom: 24,
+    fontSize: 16,
+  },
+  confirmButton: {
+    backgroundColor: '#4f46e5',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 8,
+  },
+  confirmButtonText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+  // --- Modal Styles ---
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 16,
+  },
+  modalBox: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 32,
+    width: '90%',
+    maxWidth: 384,
+    alignItems: 'center',
+  },
+  modalIcon: {
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    color: '#4b5563',
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  modalButton: {
+    width: '100%',
+    backgroundColor: '#4f46e5',
+    padding: 12,
+    borderRadius: 8,
+  },
+  modalButtonText: {
+    color: 'white',
+    fontWeight: '700',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+});

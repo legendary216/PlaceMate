@@ -1,47 +1,72 @@
 import React, { useState, useEffect } from "react";
-import { MessageSquare, Users, Building, FileText, LogOut, Calendar } from 'lucide-react'; // Added Calendar
-import { Link } from 'expo-router'; // <-- 1. Import Link
+import {
+  SafeAreaView,
+  ScrollView,
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+} from "react-native";
+import {
+  MessageSquare,
+  Users,
+  Building,
+  FileText,
+  LogOut,
+  Calendar,
+} from 'lucide-react-native';
+import { useRouter, Link } from 'expo-router'; // <-- Updated imports
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function Home() {
+  const router = useRouter();
   const [user, setUser] = useState(null);
   const [notification, setNotification] = useState({ show: false, message: '', type: '' });
 
   useEffect(() => {
-    try {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        setUser(JSON.parse(storedUser));
+    // Use AsyncStorage to load user data
+    const loadUser = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem("user");
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        } else {
+          // If no user found, redirect to login
+          router.replace("/");
+        }
+      } catch (e) {
+        console.error("Failed to load user data from AsyncStorage", e);
+        router.replace("/");
       }
-    } catch (e) {
-      console.error("Failed to parse user data from localStorage", e);
-    }
+    };
+    loadUser();
   }, []);
 
   // Base features
   let features = [
     { id: 1, title: "Interview Qs", Icon: MessageSquare, nav: "/interviewQuestions" },
     { id: 2, title: "Mentor Connect", Icon: Users, nav: "/mentorconnect" },
-    { id: 3, title: "Company Analysis", Icon: Building, nav: "/company" }, // Assuming you have these pages
-    { id: 4, title: "AI Resume", Icon: FileText, nav: "/resume" },       // Assuming you have these pages
+   // { id: 3, title: "My Bookings", Icon: Calendar, nav: "/my-bookings" }, // Added Bookings page
+    { id: 4, title: "Company Analysis", Icon: Building, nav: "/company" },
+    { id: 5, title: "AI Resume", Icon: FileText, nav: "/resume" },
   ];
 
-
   // Handle conditional navigation for admins
-  features = features.map(feature => {
+  const updatedFeatures = features.map(feature => {
       if (feature.title === "Mentor Connect" && user && user.role === 'admin') {
           return { ...feature, nav: "/adminMentors" }; // Admins go to admin page
       }
       return feature;
   });
 
-  const showNotification = (message, type = 'danger') => { /* ... (no changes) ... */
-        setNotification({ show: true, message, type });
-      setTimeout(() => {
-          setNotification({ show: false, message: '', type: '' });
-      }, 3000);
+  const showNotification = (message, type = 'danger') => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification({ show: false, message: '', type: '' });
+    }, 3000);
   };
 
-  const handleLogout = async () => { /* ... (no changes) ... */
+  const handleLogout = async () => {
     try {
       const res = await fetch("https://placemate-ru7v.onrender.com/api/auth/login/logoutUser", {
         method: "POST",
@@ -49,12 +74,12 @@ export default function Home() {
       });
 
       if (res.ok) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        await AsyncStorage.removeItem("token");
+        await AsyncStorage.removeItem("user");
         showNotification("You have been logged out successfully.", "success");
         setTimeout(() => {
-             window.location.href = "/"; // Redirect to login/landing page
-        }, 1000); // Shortened timeout
+          router.replace("/"); // Redirect using router
+        }, 1000);
       } else {
         const errorData = await res.json();
         showNotification(errorData.message || "Could not log out.");
@@ -65,58 +90,126 @@ export default function Home() {
     }
   };
 
+  // --- Rendering the component ---
   return (
-    <>
-      <style>{`
-        /* ... (styles remain the same) ... */
-        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafe; }
-        .container { display: flex; flex-direction: column; min-height: 100vh; overflow-y: auto; }
-        .header-container { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; background-color: #fff; border-bottom: 1px solid #e5e7eb; }
-        .header-title { font-size: 1.75rem; font-weight: 700; color: #111827; }
-        .logout-button { padding: 0.5rem; background-color: #eef2ff; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-        .logout-button:hover { background-color: #e0e7ff; }
-        .main-content { flex: 1; padding: 2rem 1rem; }
-        .welcome-text { font-size: 1.5rem; text-align: center; color: #374151; margin-bottom: 2rem; }
-        .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.25rem; max-width: 450px; margin: 0 auto; }
-        .card { text-decoration: none; background-color: #fff; border-radius: 1rem; padding: 2rem 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06); border: 1px solid #eef2ff; transition: transform 0.2s, box-shadow 0.2s; }
-        .card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05); }
-        .card-text { margin-top: 0.75rem; font-size: 1rem; font-weight: 600; color: #1f2937; text-align: center; }
-        .notification { position: fixed; top: 1.5rem; left: 50%; transform: translateX(-50%); padding: 1rem 1.5rem; border-radius: 0.5rem; color: #fff; font-weight: 500; z-index: 1000; }
-        .notification.success { background-color: #10b981; }
-        .notification.danger { background-color: #ef4444; }
-        @media (max-width: 480px) { .grid { grid-template-columns: 1fr; } }
-      `}</style>
-      
-      {notification.show && ( /* ... (notification JSX) ... */
-            <div className={`notification ${notification.type}`}>
-              {notification.message}
-          </div>
+    <SafeAreaView style={styles.container}>
+      {/* Notification View (Fixed Position) */}
+      {notification.show && (
+        <View style={[styles.notification, styles[`notification${notification.type}`]]}>
+          <Text style={styles.notificationText}>{notification.message}</Text>
+        </View>
       )}
 
-      <div className="container">
-        <header className="header-container">
-          <h1 className="header-title">PlaceMate</h1>
-          <button onClick={handleLogout} className="logout-button" title="Logout">
-            <LogOut size={24} color="#4f46e5" />
-          </button>
-        </header>
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle}>PlaceMate</Text>
+        <Pressable onPress={handleLogout} style={styles.logoutButton} title="Logout">
+          <LogOut size={24} color="#4f46e5" />
+        </Pressable>
+      </View>
 
-        <main className="main-content">
-          {user && <h2 className="welcome-text">Welcome, {user.name || 'User'}!</h2>}
-          <div className="grid">
-            
-            {/* --- USE LINK COMPONENT --- */}
-            {features.map(({ id, title, Icon, nav }) => (
-              <Link key={id} href={nav} className="card"> {/* <-- 2. Replace <a> with <Link> */}
+      <ScrollView contentContainerStyle={styles.mainContent}>
+        {user && <Text style={styles.welcomeText}>Welcome, {user.name || 'User'}!</Text>}
+        
+        <View style={styles.grid}>
+          {updatedFeatures.map(({ id, title, Icon, nav }) => (
+            <Link key={id} href={nav} asChild>
+              <Pressable style={styles.card}>
                 <Icon size={40} color="#4f46e5" />
-                <span className="card-text">{title}</span>
-              </Link>
-            ))}
-            {/* --- END LINK COMPONENT --- */}
-            
-          </div>
-        </main>
-      </div>
-    </>
+                <Text style={styles.cardText}>{title}</Text>
+              </Pressable>
+            </Link>
+          ))}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#f9fafe',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  logoutButton: {
+    padding: 8,
+    backgroundColor: '#eef2ff',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  mainContent: {
+    paddingVertical: 32,
+    paddingHorizontal: 16,
+  },
+  welcomeText: {
+    fontSize: 24,
+    textAlign: 'center',
+    color: '#374151',
+    marginBottom: 32,
+    fontWeight: '500',
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 20,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '45%', 
+    minWidth: 150,
+    aspectRatio: 1, 
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: '#eef2ff',
+  },
+  cardText: {
+    marginTop: 12,
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#1f2937',
+    textAlign: 'center',
+  },
+  notification: {
+    position: 'absolute',
+    top: 40,
+    alignSelf: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    zIndex: 1000,
+  },
+  notificationText: {
+    color: '#fff',
+    fontWeight: '500',
+  },
+  notificationSuccess: {
+    backgroundColor: '#10b981',
+  },
+  notificationDanger: {
+    backgroundColor: '#ef4444',
+  },
+});

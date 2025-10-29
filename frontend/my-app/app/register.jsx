@@ -1,15 +1,17 @@
 import React, { useState } from "react";
 import {
+  SafeAreaView,
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   StyleSheet,
   Modal,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, Link } from "expo-router";
 
 export default function Register() {
   const [fullName, setFullName] = useState("");
@@ -25,19 +27,23 @@ export default function Register() {
 
   const validateInputs = () => {
     let valid = true;
+    setEmailError("");
+    setPasswordError("");
+    setGeneralError("");
+
+    if (!fullName.trim() || !email.trim() || !password.trim()) {
+      setGeneralError("All fields are required");
+      valid = false;
+    }
 
     if (!emailRegex.test(email)) {
       setEmailError("Enter a valid email address");
       valid = false;
-    } else {
-      setEmailError("");
     }
 
     if (password.length < 6) {
       setPasswordError("Password must be at least 6 characters");
       valid = false;
-    } else {
-      setPasswordError("");
     }
 
     return valid;
@@ -45,11 +51,6 @@ export default function Register() {
 
   const handleRegister = async () => {
     try {
-      if (!fullName.trim() || !email.trim() || !password.trim()) {
-        setGeneralError("All fields are required");
-        return;
-      }
-
       if (!validateInputs()) return;
 
       const res = await fetch(
@@ -63,10 +64,10 @@ export default function Register() {
         }
       );
 
+      const errorData = await res.json();
       if (res.ok) {
         setShowSuccess(true);
       } else {
-        const errorData = await res.json();
         setGeneralError(errorData.message || "Registration failed");
       }
     } catch (err) {
@@ -76,171 +77,194 @@ export default function Register() {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <Text style={styles.title}>Create Account</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <View style={styles.registerWrapper}>
+            <Text style={styles.title}>Create Account</Text>
 
-      {generalError ? <Text style={styles.error}>{generalError}</Text> : null}
+            {generalError ? (
+              <Text style={styles.error}>{generalError}</Text>
+            ) : null}
 
-      <TextInput
-        style={[styles.input, fullName === "" && generalError && { borderColor: "#FF6B6B" }]}
-        placeholder="Full Name"
-        value={fullName}
-        onChangeText={setFullName}
-        placeholderTextColor="#888"
-      />
+            <TextInput
+              style={[
+                styles.inputField,
+                (generalError && !fullName) && styles.inputError,
+              ]}
+              placeholder="Full Name"
+              value={fullName}
+              onChangeText={setFullName}
+              placeholderTextColor="#999"
+            />
 
-      <TextInput
-        style={[styles.input, emailError && { borderColor: "#FF6B6B" }]}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        placeholderTextColor="#888"
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      {emailError ? <Text style={styles.error}>{emailError}</Text> : null}
+            <TextInput
+              style={[
+                styles.inputField,
+                emailError && styles.inputError,
+              ]}
+              placeholder="Email"
+              value={email}
+              onChangeText={setEmail}
+              placeholderTextColor="#999"
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            {emailError ? <Text style={styles.error}>{emailError}</Text> : null}
 
-      <TextInput
-        style={[styles.input, passwordError && { borderColor: "#FF6B6B" }]}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        placeholderTextColor="#888"
-        secureTextEntry
-      />
-      {passwordError ? <Text style={styles.error}>{passwordError}</Text> : null}
+            <TextInput
+              style={[
+                styles.inputField,
+                passwordError && styles.inputError,
+              ]}
+              placeholder="Password (min. 6 characters)"
+              value={password}
+              onChangeText={setPassword}
+              placeholderTextColor="#999"
+              secureTextEntry
+            />
+            {passwordError ? (
+              <Text style={styles.error}>{passwordError}</Text>
+            ) : null}
 
-      <TouchableOpacity style={styles.button} onPress={handleRegister}>
-        <Text style={styles.buttonText}>Register</Text>
-      </TouchableOpacity>
+            <Pressable style={styles.buttonPrimary} onPress={handleRegister}>
+              <Text style={styles.buttonPrimaryText}>Register</Text>
+            </Pressable>
 
-      <TouchableOpacity onPress={() => router.replace("/")}>
-        <Text style={styles.link}>Already have an account? Login</Text>
-      </TouchableOpacity>
-
-  
-      <Modal transparent visible={showSuccess} animationType="fade">
-        <View style={styles.overlay}>
-          <View style={styles.modalBox}>
-            <Text style={styles.icon}>✅</Text>
-            <Text style={styles.modalTitle}>Registration successful!</Text>
-            <Text style={styles.modalSubtitle}>
-              Your account has been created successfully.
-            </Text>
-
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => {
-                setShowSuccess(false);
-                router.replace("/"); 
-              }}
-            >
-              <Text style={styles.modalButtonText}>Ok</Text>
-            </TouchableOpacity>
+            <Link href="/" asChild>
+              <Pressable style={styles.link}>
+                <Text style={styles.linkText}>Already have an account? Login</Text>
+              </Pressable>
+            </Link>
           </View>
-        </View>
-      </Modal>
-    </KeyboardAvoidingView>
+
+          <Modal transparent visible={showSuccess} animationType="fade">
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalBox}>
+                <Text style={styles.modalIcon}>✅</Text>
+                <Text style={styles.modalTitle}>Registration successful!</Text>
+                <Text style={styles.modalSubtitle}>
+                  Your account has been created. Please log in.
+                </Text>
+                <Pressable
+                  style={styles.buttonPrimary}
+                  onPress={() => {
+                    setShowSuccess(false);
+                    router.replace("/");
+                  }}
+                >
+                  <Text style={styles.buttonPrimaryText}>Ok</Text>
+                </Pressable>
+              </View>
+            </View>
+          </Modal>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
 
+// Updated styles to match index.jsx
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    justifyContent: "center",
-    padding: 30,
     backgroundColor: "#f9fafe",
   },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+    padding: 20,
+  },
+  registerWrapper: {
+    width: "100%",
+  },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
+    fontSize: 32,
+    fontWeight: "700",
     color: "#222",
     textAlign: "center",
-    marginBottom: 15,
+    marginBottom: 24,
   },
-  input: {
+  inputField: {
+    width: "100%",
     backgroundColor: "#fff",
     borderWidth: 1,
     borderColor: "#ddd",
-    padding: 14,
+    padding: 15,
     marginBottom: 12,
     borderRadius: 12,
     fontSize: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    color: "#333",
   },
-  button: {
+  inputError: {
+    borderColor: "#ef4444", // Red border for error
+  },
+  buttonPrimary: {
+    width: "100%",
     backgroundColor: "#4f46e5",
     paddingVertical: 16,
     borderRadius: 12,
     marginTop: 10,
-    shadowColor: "#4f46e5",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 5,
+    alignItems: "center",
   },
-  buttonText: {
+  buttonPrimaryText: {
     color: "#fff",
-    textAlign: "center",
-    fontWeight: "bold",
+    fontWeight: "700",
     fontSize: 18,
   },
   link: {
-    textAlign: "center",
-    color: "#4f46e5",
     marginTop: 20,
+  },
+  linkText: {
+    color: "#4f46e5",
     fontWeight: "500",
     fontSize: 15,
+    textAlign: "center",
   },
   error: {
-    color: "#FF6B6B",
-    fontSize: 13,
-    marginBottom: 5,
-    marginLeft: 5,
+    color: "#ef4444",
+    fontSize: 14,
+    marginBottom: 10, // Increased margin for spacing
+    textAlign: "left",
+    paddingLeft: 4,
   },
   // Modal styles
-  overlay: {
+  modalOverlay: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.5)",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalBox: {
     backgroundColor: "#fff",
     borderRadius: 12,
-    padding: 25,
-    width: 300,
+    padding: 32,
+    width: "90%",
+    maxWidth: 384,
     alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  icon: { fontSize: 50, marginBottom: 10 },
+  modalIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 8,
     textAlign: "center",
   },
   modalSubtitle: {
-    fontSize: 14,
-    color: "#555",
+    color: "#4b5563",
+    marginBottom: 24,
     textAlign: "center",
-    marginBottom: 20,
-  },
-  modalButton: {
-    backgroundColor: "#4f46e5",
-    paddingVertical: 12,
-    paddingHorizontal: 25,
-    borderRadius: 12,
-  },
-  modalButtonText: {
-    color: "white",
     fontSize: 16,
-    fontWeight: "bold",
   },
 });

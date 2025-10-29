@@ -1,8 +1,28 @@
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, Search, Loader2, ChevronRight, Calendar } from 'lucide-react';
-import { useRouter } from "expo-router";
+import {
+  SafeAreaView,
+  ScrollView,
+  View,
+  Text,
+  TextInput,
+  Pressable,
+  StyleSheet,
+  ActivityIndicator,
+  Image,
+  Alert,
+} from "react-native";
+import {
+  ArrowLeft,
+  Search,
+  Loader2,
+  ChevronRight,
+  Calendar,
+} from 'lucide-react-native'; // Native icons
+import { useRouter, Link } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export default function MentorConnectBrowse() {
+// Renamed component to 'Index' for the index.jsx file
+export default function Index() { 
   const [mentors, setMentors] = useState([]);
   const [filteredMentors, setFilteredMentors] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -11,195 +31,305 @@ export default function MentorConnectBrowse() {
   const router = useRouter();
   const [userRole, setUserRole] = useState(null);
 
+  // --- 1. Fetch User Role & Mentors ---
   useEffect(() => {
-    // Check user role
-    try {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        setUserRole(JSON.parse(storedUser).role);
-      } else {
+    // Check user role (using AsyncStorage for native)
+    const initialize = async () => {
+      try {
+        const storedUser = await AsyncStorage.getItem("user");
+        if (storedUser) {
+          const userData = JSON.parse(storedUser);
+          setUserRole(userData.role);
+        } else {
+          setUserRole(null);
+        }
+      } catch (e) {
+        console.error("Failed to parse user data from AsyncStorage", e);
         setUserRole(null);
       }
-    } catch (e) {
-      console.error("Failed to parse user data from localStorage", e);
-      setUserRole(null);
-    }
-
+    };
+    
     // Fetch mentors
     const fetchApprovedMentors = async () => {
-      // ... (fetch logic remains the same) ...
-        setIsLoading(true);
-        setFetchError(null);
-        try {
-          const response = await fetch("https://placemate-ru7v.onrender.com/api/mentors/approved");
-          if (!response.ok) throw new Error('Network response was not ok');
-          const data = await response.json();
-          setMentors(data);
-          setFilteredMentors(data);
-        } catch (error) {
-          console.error("Failed to fetch mentors:", error);
-          setFetchError("Could not load mentors. Please check your connection.");
-        } finally {
-          setIsLoading(false);
-        }
+      setIsLoading(true);
+      setFetchError(null);
+      try {
+        const response = await fetch("https://placemate-ru7v.onrender.com/api/mentors/approved");
+        if (!response.ok) throw new Error('Network response was not ok');
+        const data = await response.json();
+        setMentors(data);
+        setFilteredMentors(data);
+      } catch (error) {
+        console.error("Failed to fetch mentors:", error);
+        setFetchError("Could not load mentors. Please check your connection.");
+      } finally {
+        setIsLoading(false);
+      }
     };
+    
+    initialize();
     fetchApprovedMentors();
   }, []);
 
-  // Handle search logic (remains the same)
+  // --- 2. Handle Search Logic ---
   useEffect(() => {
-     // ... (search logic remains the same) ...
-      const results = mentors.filter(mentor =>
-        (mentor.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (mentor.jobTitle || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (mentor.company || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (mentor.expertise || '').toLowerCase().includes(searchTerm.toLowerCase())
-      );
-      setFilteredMentors(results);
+    const results = mentors.filter(mentor =>
+      (mentor.fullName || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (mentor.jobTitle || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (mentor.company || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (mentor.expertise || '').toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredMentors(results);
   }, [searchTerm, mentors]);
 
+  // --- 3. Navigation ---
   const viewProfile = (mentorId) => {
+    // Navigate to the dynamic mentor profile page: /mentorconnect/[id]
     router.push(`/mentorconnect/${mentorId}`);
   };
-
-  // Render mentor list (remains the same)
+  
+  // --- 4. Render Content ---
   const renderContent = () => {
-     // ... (render logic remains the same) ...
-      if (isLoading) {
-        return <p className="info-text"><Loader2 size={24} className="spinner" /> Loading mentors...</p>;
-      }
-      if (fetchError) {
-        return <p className="error-text">{fetchError}</p>;
-      }
-      if (filteredMentors.length === 0 && !isLoading) {
-          return <p className="info-text">No mentors found matching your criteria.</p>;
-      }
+    if (isLoading) {
       return (
-        <div className="mentor-list">
-          {filteredMentors.map((mentor) => (
-            <div key={mentor._id} className="mentor-item" onClick={() => viewProfile(mentor._id)}>
-              <img
-                src={mentor.profilePic || 'https://via.placeholder.com/150'}
-                alt={`${mentor.fullName} profile`}
-                className="item-avatar"
-              />
-              <div className="item-content">
-                <h3 className="item-name">{mentor.fullName}</h3>
-                <p className="item-title">{mentor.jobTitle} at {mentor.company}</p>
-                <p className="item-expertise">
-                  Expertise: {mentor.expertise || "Not specified"}
-                </p>
-              </div>
-              <ChevronRight size={20} className="item-chevron" />
-            </div>
-          ))}
-        </div>
+        <View style={styles.infoContainer}>
+          <ActivityIndicator size="large" color="#4f46e5" />
+          <Text style={styles.infoText}>Loading mentors...</Text>
+        </View>
       );
+    }
+    if (fetchError) {
+      return <Text style={styles.errorText}>{fetchError}</Text>;
+    }
+    if (filteredMentors.length === 0 && !isLoading) {
+      return <Text style={styles.infoText}>No mentors found matching your criteria.</Text>;
+    }
+    
+    return (
+      <View style={styles.mentorList}>
+        {filteredMentors.map((mentor) => (
+          // Use Pressable for the clickable list item
+          <Pressable 
+            key={mentor._id} 
+            style={styles.mentorItem} 
+            onPress={() => viewProfile(mentor._id)}
+          >
+            <Image
+              source={{ uri: mentor.profilePic || 'https://via.placeholder.com/150' }}
+              style={styles.itemAvatar}
+            />
+            <View style={styles.itemContent}>
+              <Text style={styles.itemName}>{mentor.fullName}</Text>
+              <Text style={styles.itemTitle}>{mentor.jobTitle} at {mentor.company}</Text>
+              <Text style={styles.itemExpertise} numberOfLines={1}>
+                Expertise: {mentor.expertise || "Not specified"}
+              </Text>
+            </View>
+            <ChevronRight size={20} color="#9ca3af" style={styles.itemChevron} />
+          </Pressable>
+        ))}
+      </View>
+    );
   };
 
   return (
-    <>
-      <style>{`
-        /* --- Styles --- */
-        body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafe; }
-        .page-container { display: flex; flex-direction: column; min-height: 100vh;overflow-y: auto; }
-        
-        /* --- UPDATED HEADER STYLE --- */
-        .header-container { 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between; /* Positions items at ends */
-            padding: 1.25rem 1.5rem; 
-            background-color: #fff; 
-            border-bottom: 1px solid #e5e7eb; 
-        }
-        .header-left { /* Group back button and title */
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-        /* --- END HEADER UPDATE --- */
+    <SafeAreaView style={styles.pageContainer}>
+      <View style={styles.headerContainer}>
+        {/* Group back button and title */}
+        <View style={styles.headerLeft}>
+          <Link href="/home" asChild>
+            <Pressable style={styles.backButton} title="Back to Home">
+              <ArrowLeft size={24} color="#4f46e5" />
+            </Pressable>
+          </Link>
+          <Text style={styles.headerTitle}>Find a Mentor</Text>
+        </View>
 
-        .back-button { padding: 0.5rem; background-color: #eef2ff; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; text-decoration: none; }
-        .header-title { font-size: 1.75rem; font-weight: 700; color: #111827; margin: 0; }
-        .main-content { padding: 2rem 1.5rem; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; }
-        .search-container { position: relative; margin-bottom: 2rem; max-width: 600px; margin-left: auto; margin-right: auto; }
-        .search-icon { position: absolute; left: 0.875rem; top: 50%; transform: translateY(-50%); color: #9ca3af; }
-        .search-input { width: 100%; box-sizing: border-box; background-color: #fff; border: 1px solid #ddd; padding: 0.875rem 0.875rem 0.875rem 2.75rem; border-radius: 0.75rem; font-size: 1rem; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05); }
-        .search-input:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.5); }
+        {/* My Bookings Button (Visible only to 'user') */}
+        {userRole === 'user' && (
+          <Pressable
+            onPress={() => router.push('/my-bookings')}
+            style={styles.myBookingsButton}
+          >
+            <Calendar size={18} color="#4338ca" />
+            <Text style={styles.myBookingsButtonText}>My Bookings</Text>
+          </Pressable>
+        )}
+      </View>
 
-        /* --- UPDATED BUTTON STYLE --- */
-        .my-bookings-button {
-          display: flex; align-items: center; gap: 0.5rem;
-          background-color: #eef2ff; color: #4338ca; border: none; /* Removed border */
-          padding: 0.6rem 1rem; /* Slightly smaller padding */
-          border-radius: 8px; font-weight: 600; cursor: pointer;
-          text-align: center; font-size: 0.9rem; /* Slightly smaller font */
-          transition: background-color 0.2s;
-          /* Removed margin */
-        }
-        .my-bookings-button:hover { background-color: #e0e7ff; }
-        /* --- END BUTTON UPDATE --- */
+      <ScrollView contentContainerStyle={styles.mainContent}>
+        <View style={styles.searchContainer}>
+          <View style={styles.searchIcon}>
+            <Search size={20} color="#9ca3af" />
+          </View>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search by name, company, or expertise..."
+            value={searchTerm}
+            onChangeText={setSearchTerm}
+            placeholderTextColor="#9ca3af"
+          />
+        </View>
 
-        .mentor-list { display: flex; flex-direction: column; gap: 1rem; }
-        .mentor-item { display: flex; align-items: center; gap: 1rem; background-color: #fff; border-radius: 0.75rem; border: 1px solid #e5e7eb; padding: 1rem; transition: background-color 0.2s, box-shadow 0.2s; cursor: pointer; }
-        .mentor-item:hover { background-color: #f9fafb; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
-        .item-avatar { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
-        .item-content { flex-grow: 1; overflow: hidden; }
-        .item-name { font-size: 1.15rem; font-weight: 600; color: #111827; margin: 0; }
-        .item-title { font-size: 0.95rem; color: #4f46e5; margin: 0.25rem 0; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .item-expertise { font-size: 0.9rem; color: #6b7280; margin: 0.25rem 0 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .item-chevron { flex-shrink: 0; color: #9ca3af; margin-left: 1rem; }
-        .info-text, .error-text { text-align: center; color: #6b7280; font-size: 1rem; padding: 4rem 1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
-        .error-text { color: #ef4444; font-weight: 500; }
-        .spinner { animation: spin 1s linear infinite; }
-        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-      `}</style>
-
-      <div className="page-container">
-        <header className="header-container">
-          {/* Group back button and title */}
-          <div className="header-left">
-              <a href="/home" className="back-button" title="Back to Home">
-                <ArrowLeft size={24} color="#4f46e5" />
-              </a>
-              <h1 className="header-title">Find a Mentor</h1>
-          </div>
-
-          {/* --- MOVE BUTTON HERE --- */}
-          {userRole === 'user' && (
-            <button
-              onClick={() => router.push('/my-bookings')}
-              className="my-bookings-button"
-            >
-              <Calendar size={18} />
-              My Bookings
-            </button>
-          )}
-          {/* --- END BUTTON MOVE --- */}
-        </header>
-
-        <main className="main-content">
-          <div className="search-container">
-            <span className="search-icon">
-              <Search size={20} />
-            </span>
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search by name, company, or expertise..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
-          {/* --- BUTTON REMOVED FROM HERE --- */}
-
-          <section className="mentor-list-container">
-            {renderContent()}
-          </section>
-        </main>
-      </div>
-    </>
+        <View style={styles.mentorListContainer}>
+          {renderContent()}
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
+
+// --- Converted StyleSheet ---
+const styles = StyleSheet.create({
+  pageContainer: {
+    flex: 1,
+    backgroundColor: '#f9fafe',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  backButton: {
+    padding: 8,
+    backgroundColor: '#eef2ff',
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  // My Bookings Button
+  myBookingsButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#eef2ff',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  myBookingsButtonText: {
+    color: '#4338ca',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  mainContent: {
+    padding: 24,
+  },
+  searchContainer: {
+    position: 'relative',
+    marginBottom: 32,
+    alignSelf: 'center',
+    width: '100%',
+    maxWidth: 600,
+  },
+  searchIcon: {
+    position: 'absolute',
+    left: 14,
+    top: '50%',
+    transform: [{ translateY: -10 }],
+    zIndex: 1,
+  },
+  searchInput: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#ddd',
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+    paddingLeft: 44, // Space for the icon
+    borderRadius: 12,
+    fontSize: 16,
+    color: '#111827',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  mentorListContainer: {
+    // Container for the list section
+  },
+  mentorList: {
+    flexDirection: 'column',
+    gap: 16,
+  },
+  mentorItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  itemAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    resizeMode: 'cover',
+    flexShrink: 0,
+  },
+  itemContent: {
+    flex: 1,
+    overflow: 'hidden',
+  },
+  itemName: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  itemTitle: {
+    fontSize: 15,
+    color: '#4f46e5',
+    marginVertical: 4,
+    fontWeight: '500',
+  },
+  itemExpertise: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 4,
+  },
+  itemChevron: {
+    flexShrink: 0,
+    marginLeft: 16,
+  },
+  infoContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 48,
+  },
+  infoText: {
+    textAlign: 'center',
+    color: '#6b7280',
+    fontSize: 16,
+    marginTop: 16,
+  },
+  errorText: {
+    textAlign: 'center',
+    color: '#ef4444',
+    fontSize: 16,
+    fontWeight: '500',
+    paddingVertical: 48,
+  },
+});

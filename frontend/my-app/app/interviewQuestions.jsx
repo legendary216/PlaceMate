@@ -1,16 +1,44 @@
 import React, { useState, useEffect } from "react";
-import { ArrowLeft, Code, User, BrainCircuit, Plus, Sparkles, Trash2, RotateCw, ChevronDown } from 'lucide-react';
+import {
+  SafeAreaView,
+  ScrollView,
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  ActivityIndicator,
+  Modal,
+  TextInput,
+  Alert,
+  Platform,
+} from "react-native";
+import {
+  ArrowLeft,
+  Code,
+  User,
+  BrainCircuit,
+  Plus,
+  Sparkles,
+  Trash2,
+  RotateCw,
+  ChevronDown,
+  AlertTriangle,
+} from 'lucide-react-native';
+import { useRouter, Link } from 'expo-router';
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Picker } from "@react-native-picker/picker";
 
-// This is the complete Interview Questions page.
-// It includes role-based features: Admins can add, delete, and generate answers with AI.
-// Regular users have read-only access. Difficulty is included.
+// --- Constants ---
+const difficultyMap = { 'Easy': 1, 'Medium': 2, 'Hard': 3 };
+const difficultyOptions = ["Easy", "Medium", "Hard"];
+const categoryOptions = ["technical", "hr", "aptitude"];
 
 export default function InterviewPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('technical');
   const [questions, setQuestions] = useState([]);
   const [expandedQuestionId, setExpandedQuestionId] = useState(null);
-  // --- NEW STATE FOR SORTING ---
-  const [sortOrder, setSortOrder] = useState('newest'); // 'newest', 'oldest', 'easy', 'hard'
+  const [sortOrder, setSortOrder] = useState('newest');
 
   // --- State for Admin & AI Features ---
   const [userRole, setUserRole] = useState(null);
@@ -18,7 +46,7 @@ export default function InterviewPage() {
   const [newQuestion, setNewQuestion] = useState("");
   const [newAnswer, setNewAnswer] = useState("");
   const [newCategory, setNewCategory] = useState("technical");
-  const [newDifficulty, setNewDifficulty] = useState("Medium"); // New state for difficulty
+  const [newDifficulty, setNewDifficulty] = useState("Medium");
   const [isGenerating, setIsGenerating] = useState(false);
   
   // --- State for Data Fetching ---
@@ -26,28 +54,37 @@ export default function InterviewPage() {
   const [fetchError, setFetchError] = useState(null);
 
   useEffect(() => {
-    // In a real application, you would fetch the user's role here.
-    const userDataString = localStorage.getItem('user');
-    if (userDataString) {
-      const userData = JSON.parse(userDataString);
-      setUserRole(userData.role);
-    } 
-    // Uncomment this line to test Admin functionality easily:
-    // setUserRole('admin'); 
-    
-    fetchQuestions(activeTab);
+    // Fetch user role from AsyncStorage
+    const initialize = async () => {
+        const userDataString = await AsyncStorage.getItem('user');
+        if (userDataString) {
+            const userData = JSON.parse(userDataString);
+            setUserRole(userData.role);
+        }
+        // Fetch initial questions
+        fetchQuestions('technical');
+    };
+    initialize();
   }, []);
+
+  // Re-fetch questions when the tab changes, and then apply sort
+  useEffect(() => {
+    fetchQuestions(activeTab);
+  }, [activeTab, sortOrder]);
+
 
   const fetchQuestions = async (category) => {
     setIsLoading(true);
     setFetchError(null);
     try {
-      // NOTE: This relies on your local backend server (localhost:5000) for question CRUD.
-      // Your backend must return the questions already sorted by date (e.g., newest first).
       const response = await fetch(`https://placemate-ru7v.onrender.com/api/questions/${category}`);
       if (!response.ok) throw new Error('Network response was not ok');
       const data = await response.json();
-      setQuestions(data);
+      
+      // Apply the current sort order right after fetching
+      const sortedData = sortQuestions(data, sortOrder);
+      setQuestions(sortedData);
+
     } catch (error) {
       console.error("Failed to fetch questions:", error);
       setFetchError("Could not load questions. Please ensure the server is running.");
@@ -57,20 +94,57 @@ export default function InterviewPage() {
     }
   };
 
+  const sortQuestions = (data, sortType) => {
+    const questionsToSort = [...data];
+    return questionsToSort.sort((a, b) => {
+      
+      if (sortType === 'easy' || sortType === 'hard') {
+        const difficultyA = difficultyMap[a.difficulty] || 99;
+        const difficultyB = difficultyMap[b.difficulty] || 99;
+        
+        if (sortType === 'easy') {
+          return difficultyA - difficultyB; // Easy (asc)
+        } else {
+          return difficultyB - difficultyA; // Hard (desc)
+        }
+      } 
+      
+      // Sort by Time/Date
+      const dateA = new Date(a.createdAt || 0); 
+      const dateB = new Date(b.createdAt || 0);
+      
+      if (sortType === 'newest') {
+        return dateB.getTime() - dateA.getTime(); // Newest first (desc)
+      } else if (sortType === 'oldest') {
+        return dateA.getTime() - dateB.getTime(); // Oldest first (asc)
+      }
+
+      return 0;
+    });
+  };
+
   const handleTabClick = (tab) => {
     setActiveTab(tab);
-    fetchQuestions(tab);
     setExpandedQuestionId(null);
-    setSortOrder('newest'); // Reset sort to default/newest on category switch
+    // Note: fetchQuestions will run due to the useEffect dependency [activeTab]
   };
 
   const handleQuestionClick = (id) => {
     setExpandedQuestionId(expandedQuestionId === id ? null : id);
   };
 
-  const handleAddQuestionSubmit = async (e) => {
-    e.preventDefault();
-    const token = localStorage.getItem('token');
+  const handleAddQuestionSubmit = async () => {
+    // No need for e.preventDefault() in React Native Pressable
+    if (!newQuestion.trim() || !newAnswer.trim()) {
+        Alert.alert("Error", "Question and Answer cannot be empty.");
+        return;
+    }
+    const token = await AsyncStorage.getItem('token');
+    if (!token) {
+        Alert.alert("Error", "You must be logged in to perform this action.");
+        return;
+    }
+
     try {
       const res = await fetch("https://placemate-ru7v.onrender.com/api/questions", {
         method: "POST",
@@ -78,68 +152,72 @@ export default function InterviewPage() {
         body: JSON.stringify({ question: newQuestion, answer: newAnswer, category: newCategory, difficulty: newDifficulty }),
       });
       if (res.ok) {
-        console.log("Question added successfully!"); 
+        Alert.alert("Success", "Question added successfully!"); 
         setShowAddForm(false);
         setNewQuestion("");
         setNewAnswer("");
         setNewDifficulty("Medium"); 
         if (newCategory === activeTab) {
-          fetchQuestions(activeTab);
+          fetchQuestions(activeTab); // Refresh current list
         }
       } else {
         const errorData = await res.json();
-        alert(`Failed to add question: ${errorData.message}`); 
+        Alert.alert("Failed", `Failed to add question: ${errorData.message}`); 
       }
     } catch (err) {
+      Alert.alert("Server Error", "Could not connect to the server."); 
       console.error("A server error occurred:", err);
-      alert("A server error occurred."); 
     }
   };
 
-  const handleDeleteQuestion = async (questionId) => {
-    if (!window.confirm("Are you sure you want to delete this question?")) return; 
-    const token = localStorage.getItem('token');
-    try {
-      const res = await fetch(`https://placemate-ru7v.onrender.com/api/questions/${questionId}`, {
-        method: "DELETE",
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (res.ok) {
-        console.log("Question deleted successfully!"); 
-        fetchQuestions(activeTab);
-      } else {
-        const errorData = await res.json();
-        alert(`Error: ${errorData.message || "Failed to delete question."}`);
-      }
-    } catch (err) {
-      alert("A server error occurred during deletion.");
-      console.error(err);
-    }
+  const handleDeleteQuestion = (questionId) => {
+    // Use React Native Alert for confirmation
+    Alert.alert(
+        "Confirm Deletion",
+        "Are you sure you want to delete this question?",
+        [
+            { text: "Cancel", style: "cancel" },
+            {
+                text: "Delete",
+                style: "destructive",
+                onPress: async () => {
+                    const token = await AsyncStorage.getItem('token');
+                    try {
+                        const res = await fetch(`https://placemate-ru7v.onrender.com/api/questions/${questionId}`, {
+                            method: "DELETE",
+                            headers: { "Authorization": `Bearer ${token}` }
+                        });
+                        if (res.ok) {
+                            Alert.alert("Success", "Question deleted successfully!"); 
+                            fetchQuestions(activeTab);
+                        } else {
+                            const errorData = await res.json();
+                            Alert.alert("Error", `Failed to delete: ${errorData.message}`);
+                        }
+                    } catch (err) {
+                        Alert.alert("Server Error", "A server error occurred during deletion.");
+                        console.error(err);
+                    }
+                }
+            }
+        ]
+    );
   };
 
 
-  // --- RESTORED CLIENT-SIDE AI GENERATION (INSECURE) ---
+  // --- Client-Side AI Generation (Using API Call) ---
   const handleGenerateAnswer = async () => {
     if (!newQuestion.trim()) {
-      alert("Please enter a question first.");
+      Alert.alert("Input Error", "Please enter a question first.");
       return;
     }
     
     setIsGenerating(true);
     setNewAnswer("✨ Generating a high-quality answer with Gemini...");
     
-    // ⚠️ WARNING: INSECURE KEY EXPOSURE FOR TESTING 
-    // >>>>>>>>>>>>>> PASTE YOUR ACTUAL API KEY HERE <<<<<<<<<<<<<<<
-    const apiKey = "AIzaSyDd9V4VDVxmU0zvRlFFzNM0d_Xe1PvYnUA"; 
-    const modelName = "gemini-2.5-flash-lite"; 
+    const apiKey = "AIzaSyDd9V4VDVxmU0zvRlFFzNM0d_Xe1PvYnUA"; // Canvas will inject the key at runtime
+    const modelName = "gemini-2.5-flash-preview-09-2025"; 
     
-    // Check if the placeholder key is still in place
-    if (apiKey === "YOUR_HARDCODED_GEMINI_API_KEY_HERE" || !apiKey || apiKey.length < 30) {
-        setNewAnswer("ERROR: Please replace 'YOUR_HARDCODED_GEMINI_API_KEY_HERE' in the code with a valid key.");
-        setIsGenerating(false);
-        return;
-    }
-
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
     
     const systemPrompt = "You are an expert hiring manager. Provide a clear, comprehensive, and well-structured answer to the following interview question, suitable for a job candidate. Format the response using markdown.";
@@ -167,9 +245,9 @@ export default function InterviewPage() {
       });
 
       if (!response.ok) {
-           const errorData = await response.json();
-           console.error("Gemini API call failed (Client-side):", errorData);
-           throw new Error(`API error: ${response.status} - ${errorData.error?.message || response.statusText}`);
+            const errorData = await response.json();
+            console.error("Gemini API call failed (Client-side):", errorData);
+            throw new Error(`API error: ${response.statusText}`);
       }
       
       const result = await response.json();
@@ -190,309 +268,546 @@ export default function InterviewPage() {
   };
   // --------------------------------------------------------------------
   
-  // --- NEW: Sorts the questions array locally based on difficulty or time ---
-  const handleSortChange = (newSortOrder) => {
-    setSortOrder(newSortOrder);
-    
-    // Mapping for Difficulty sort order
-    const difficultyMap = { 'Easy': 1, 'Medium': 2, 'Hard': 3 };
-    
-    // Sort logic depends on the type of sort requested
-    const sortedQuestions = [...questions].sort((a, b) => {
-      
-      if (newSortOrder === 'easy' || newSortOrder === 'hard') {
-        // --- Sort by Difficulty ---
-        const difficultyA = difficultyMap[a.difficulty] || 99;
-        const difficultyB = difficultyMap[b.difficulty] || 99;
-        
-        if (newSortOrder === 'easy') {
-          return difficultyA - difficultyB; // Easy (asc)
-        } else {
-          return difficultyB - difficultyA; // Hard (desc)
-        }
-      } 
-      
-      // --- Sort by Time/Date ---
-      // We assume your backend includes a 'createdAt' timestamp for accurate time sort
-      const dateA = new Date(a.createdAt || 0); // Use 0 if createdAt is missing
-      const dateB = new Date(b.createdAt || 0);
-      
-      if (newSortOrder === 'newest') {
-        return dateB - dateA; // Newest first (desc)
-      } else if (newSortOrder === 'oldest') {
-        return dateA - dateB; // Oldest first (asc)
-      }
-
-      return 0; // No sort change
-    });
-
-    setQuestions(sortedQuestions);
-  };
-
-
+  // --- Render Questions Content ---
   const renderContent = () => {
-    if (isLoading) return <p className="info-text">Loading questions...</p>;
-    if (fetchError) return <p className="error-text">{fetchError}</p>;
-    
-    if (questions.length === 0) return (
-        <div className="empty-state">
-            <p className="info-text">No questions found for this category.</p>
-        </div>
+    if (isLoading) return (
+        <View style={styles.infoContainer}>
+            <ActivityIndicator size="large" color="#4f46e5" />
+            <Text style={styles.infoText}>Loading questions...</Text>
+        </View>
+    );
+    if (fetchError) return (
+        <View style={styles.infoContainer}>
+            <AlertTriangle size={32} color="#ef4444" />
+            <Text style={styles.errorText}>{fetchError}</Text>
+        </View>
     );
     
-  return questions.map((q) => (
-      <div key={q._id} className="question-card">
-        <div className="question-header" onClick={() => handleQuestionClick(q._id)}>
-          <div className="question-toggle">
-            <p className="question-text">{q.question}</p>
-          </div>
-          <div className="question-controls">
-            <span className={`difficulty-badge difficulty-${q.difficulty?.toLowerCase()}`}>{q.difficulty}</span>
+    if (questions.length === 0) return (
+        <View style={styles.emptyState}>
+            <Text style={styles.infoText}>No questions found for this category.</Text>
+        </View>
+    );
+    
+    return questions.map((q) => (
+      <View key={q._id} style={styles.questionCard}>
+        <Pressable 
+          onPress={() => handleQuestionClick(q._id)}
+          style={styles.questionHeader}
+        >
+          <View style={styles.questionToggle}>
+            <Text style={styles.questionText}>{q.question}</Text>
+          </View>
+          <View style={styles.questionControls}>
+            <View 
+                style={[
+                    styles.difficultyBadge, 
+                    styles[`difficulty-${q.difficulty?.toLowerCase()}`]
+                ]}
+            >
+                <Text style={styles.difficultyText}>{q.difficulty}</Text>
+            </View>
             {userRole === 'admin' && (
-              <button className="delete-button" title="Delete Question" onClick={(e) => { e.stopPropagation(); handleDeleteQuestion(q._id); }}>
-                <Trash2 size={18} />
-              </button>
+              <Pressable 
+                style={styles.deleteButton}
+                onPress={() => handleDeleteQuestion(q._id)}
+                hitSlop={10} // Makes it easier to tap
+              >
+                <Trash2 size={18} color="#ef4444" />
+              </Pressable>
             )}
-            {/* REMOVED CHEVRON DOWN ICON FROM HERE */}
-          </div>
-        </div>
-        <div className={`question-answer ${expandedQuestionId === q._id ? 'expanded' : ''}`}>
-          {q.answer}
-        </div>
-      </div>
+          </View>
+        </Pressable>
+        {expandedQuestionId === q._id && (
+            <ScrollView style={styles.questionAnswerContainer}>
+                <Text style={styles.questionAnswerText}>
+                    {q.answer}
+                </Text>
+            </ScrollView>
+        )}
+      </View>
     ));
   };
 
+
   return (
-    <>
-      <style>{`
-        body { margin: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f9fafe; }
-        .page-container { display: flex; flex-direction: column; min-height: 100vh; padding-bottom: 80px; box-sizing: border-box; overflow-y: auto;}
-        .header-container { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; background-color: #fff; border-bottom: 1px solid #e5e7eb; flex-shrink: 0; }
-        .header-left { display: flex; align-items: center; }
-        .back-button { padding: 0.5rem; background-color: #eef2ff; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; text-decoration: none; margin-right: 1rem; }
-        .header-title { font-size: 1.75rem; font-weight: 700; color: #111827; }
-        .main-content { padding: 2rem 1.5rem; max-width: 800px; margin: 0 auto; width: 100%; box-sizing: border-box; }
-        
-        /* NEW CONTROL BAR STYLES */
-        .control-bar { 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            margin-bottom: 1.5rem; 
-            padding: 0.5rem 0;
-            /* Ensure alignment in one line */
-            flex-wrap: nowrap; 
-            gap: 1rem;
-            /* Ensure controls are fixed to the right on scroll (Optional: but improves UX) */
-            position: sticky;
-            top: 0;
-            background-color: #f9fafe; /* Match page background */
-            z-index: 10;
-        }
-        
-        /* UPDATED STYLES FOR SORTING BAR */
-        .sort-bar { 
-            display: flex; 
-            align-items: center; 
-            /* Push sort menu to the right */
-            margin-left: auto; 
-            gap: 0.5rem; 
-        }
-        .sort-control-group {
-            display: flex;
-            align-items: center;
-            position: relative;
-        }
-        .sort-label { 
-            font-size: 0.9rem; 
-            color: #4b5563; 
-            font-weight: 500; 
-            margin-right: 0.25rem; /* Reduced margin */
-            flex-shrink: 0; 
-        }
-        .sort-select { 
-            padding: 0.5rem 2.5rem 0.5rem 0.75rem; 
-            border: 2px solid #e5e7eb; /* Slightly thicker border for style */
-            border-radius: 8px; 
-            font-size: 0.9rem; 
-            background-color: #fff; /* White background for contrast */
-            cursor: pointer; 
-            appearance: none; 
-            min-width: 150px;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-            transition: border-color 0.2s;
-        }
-        .sort-select:focus {
-            outline: none;
-            border-color: #4f46e5;
-            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2);
-        }
-        .select-icon {
-            position: absolute;
-            right: 8px;
-            pointer-events: none; 
-            color: #4f46e5; /* Distinct color for icon */
-        }
-        /* ADDED STYLE FOR BUTTON SIZE */
-        .add-question-btn { 
-            display: flex; 
-            align-items: center; 
-            gap: 0.5rem; 
-            background-color: #4f46e5; 
-            color: white; 
-            border: none; 
-            padding: 0.5rem 1rem; /* Compact padding */
-            border-radius: 8px; 
-            font-weight: 600; 
-            cursor: pointer; 
-            transition: background-color 0.2s; 
-            font-size: 0.9rem; 
-            flex-shrink: 0; 
-        }
-        .add-question-btn:hover { background-color: #4338ca; }
-        /* END NEW STYLES */
+    <SafeAreaView style={styles.pageContainer}>
+      <View style={styles.headerContainer}>
+        <View style={styles.headerLeft}>
+          <Link href="/home" asChild>
+            <Pressable style={styles.backButton} title="Back to Home">
+              <ArrowLeft size={24} color="#4f46e5" />
+            </Pressable>
+          </Link>
+          <Text style={styles.headerTitle}>Interview Questions</Text>
+        </View>
+      </View>
 
-        .accordion-container { display: flex; flex-direction: column; gap: 1rem; }
-        .question-card { background-color: #fff; border-radius: 0.75rem; border: 1px solid #e5e7eb; overflow: hidden; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); }
-        .question-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.25rem; cursor: pointer; }
-        .question-toggle { display: flex; align-items: center; flex-grow: 1; }
-        .question-text { font-weight: 600; color: #1f2937; margin: 0; padding-right: 1rem; }
-        .question-answer { max-height: 0; overflow: hidden; transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out; background-color: #f9fafb; color: #4b5563; font-size: 0.95rem; line-height: 1.6; white-space: pre-wrap; padding: 0 1.25rem; }
-        .question-answer.expanded { max-height: 1000px; padding: 1.25rem; border-top: 1px solid #e5e7eb; }
-        .question-controls { display: flex; align-items: center; flex-shrink: 0; }
-        .bottom-tab-bar { position: fixed; bottom: 0; left: 0; width: 100%; display: flex; justify-content: space-around; background-color: #ffffff; border-top: 1px solid #e5e7eb; box-shadow: 0 -2px 10px rgba(0,0,0,0.05); padding: 0.5rem 0; z-index: 100; }
-        .tab-button { display: flex; flex-direction: column; align-items: center; gap: 4px; background: transparent; border: none; cursor: pointer; color: #6b7280; padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 600; border-radius: 8px; transition: color 0.2s ease-in-out, background-color 0.2s ease-in-out; }
-        .tab-button.active { color: #4f46e5; }
-        .delete-button { background: transparent; border: none; cursor: pointer; color: #ef4444; padding: 0.5rem; border-radius: 50%; margin-left: 0.5rem; flex-shrink: 0; }
-        .delete-button:hover { background-color: #fee2e2; }
-        .modal-overlay { position: fixed; inset: 0; background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 200; }
-        .modal-box { background-color: #fff; border-radius: 0.75rem; padding: 2rem; width: 100%; max-width: 32rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-        .modal-title { font-size: 1.25rem; font-weight: 600; }
-        .form-group { margin-bottom: 1rem; }
-        .form-label { display: block; font-weight: 500; margin-bottom: 0.5rem; }
-        .form-input, .form-textarea, .form-select { width: 100%; box-sizing: border-box; border: 1px solid #d1d5db; border-radius: 8px; padding: 0.75rem; font-size: 1rem; }
-        .form-textarea { min-height: 120px; resize: vertical; }
-        .modal-actions { display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; }
-        .button-cancel { background-color: #f3f4f6; border: 1px solid #d1d5db; color: #1f2937; }
-        .ai-button { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border: none; background-color: #eef2ff; color: #4f46e5; border-radius: 6px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; }
-        .ai-button:hover:not(:disabled) { background-color: #e0e7ff; }
-        .ai-button:disabled { background-color: #f3f4f6; color: #9ca3af; cursor: not-allowed; }
-        .label-container { display: flex; justify-content: space-between; align-items: center; }
-        .info-text { text-align: center; color: #6b7280; font-size: 1rem; padding: 2rem; }
-        .error-text { text-align: center; color: #ef4444; font-size: 1rem; padding: 2rem; font-weight: 500; }
-        
-        /* New Styles for Difficulty Badge */
-        .difficulty-badge { font-size: 0.75rem; font-weight: 600; padding: 0.2rem 0.6rem; border-radius: 99px; width: fit-content; margin-right: 1rem; flex-shrink: 0; }
-        .difficulty-easy { background-color: #dcfce7; color: #166534; }
-        .difficulty-medium { background-color: #fef3c7; color: #92400e; }
-        .difficulty-hard { background-color: #fee2e2; color: #991b1b; }
-        .animate-spin { animation: spin 1s linear infinite; }
-        @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
-      
-      <div className="page-container">
-        <header className="header-container">
-          <div className="header-left">
-            <a href="/home" className="back-button" title="Back to Home"><ArrowLeft size={24} color="#4f46e5" /></a>
-            <h1 className="header-title">Interview Questions</h1>
-          </div>
-          {/* REMOVED ADD BUTTON FROM HEADER */}
-        </header>
+      <ScrollView contentContainerStyle={styles.mainContent}>
+        {/* NEW CONTROL BAR: Houses Add Button (Left) and Sort Dropdown (Right) */}
+        <View style={styles.controlBar}>
+          {userRole === 'admin' && (
+            <Pressable style={styles.addQuestionBtn} onPress={() => setShowAddForm(true)}>
+              <Plus size={20} color="white" />
+              <Text style={styles.addQuestionBtnText}>Add</Text>
+            </Pressable>
+          )}
 
-        <main className="main-content">
-          {/* NEW CONTROL BAR: Houses Add Button (Left) and Sort Dropdown (Right) */}
-          <div className="control-bar">
-            {userRole === 'admin' && (
-              <button className="add-question-btn" onClick={() => setShowAddForm(true)}>
-                <Plus size={20} /> Add 
-              </button>
-            )}
+          {/* SORT BAR */}
+          <View style={styles.sortBar}>
+            <Text style={styles.sortLabel}>Sort By:</Text>
+            <View style={styles.sortControlGroup}>
+                <Picker
+                    selectedValue={sortOrder}
+                    onValueChange={(itemValue) => handleTabClick(itemValue)}
+                    style={styles.sortSelect}
+                    dropdownIconColor="#4f46e5"
+                >
+                    <Picker.Item label="Time (Newest)" value="newest" />
+                    <Picker.Item label="Time (Oldest)" value="oldest" />
+                    <Picker.Item label="Difficulty (Hardest)" value="hard" />
+                    <Picker.Item label="Difficulty (Easiest)" value="easy" />
+                </Picker>
+            </View>
+          </View>
+          {/* END SORT BAR */}
+        </View>
+        {/* END CONTROL BAR */}
 
-            {/* SORT BAR */}
-            <div className="sort-bar">
-              <label className="sort-label" htmlFor="sort-select">Sort By:</label>
-              <div className="sort-control-group">
-                  <select 
-                      id="sort-select" 
-                      className="sort-select" 
-                      value={sortOrder} 
-                      onChange={(e) => handleSortChange(e.target.value)}
-                  >
-                      <option value="newest">Time (Newest)</option>
-                      <option value="oldest">Time (Oldest)</option>
-                      <option disabled>--- Difficulty ---</option>
-                      <option value="hard">Difficulty (Hardest)</option>
-                      <option value="easy">Difficulty (Easiest)</option>
-                  </select>
-                  <ChevronDown size={20} className="select-icon" />
-              </div>
-            </div>
-            {/* END SORT BAR */}
-          </div>
-          {/* END CONTROL BAR */}
+        <View style={styles.accordionContainer}>
+          {renderContent()}
+        </View>
+      </ScrollView>
 
-          <section className="accordion-container">
-            {renderContent()}
-          </section>
-        </main>
+      <View style={styles.bottomTabBar}>
+        <Pressable 
+            style={[styles.tabButton, activeTab === 'technical' && styles.tabButtonActive]} 
+            onPress={() => handleTabClick('technical')}
+        >
+            <Code size={24} color={activeTab === 'technical' ? '#4f46e5' : '#6b7280'} />
+            <Text style={[styles.tabButtonText, activeTab === 'technical' && styles.tabButtonTextActive]}>Technical</Text>
+        </Pressable>
+        <Pressable 
+            style={[styles.tabButton, activeTab === 'hr' && styles.tabButtonActive]} 
+            onPress={() => handleTabClick('hr')}
+        >
+            <User size={24} color={activeTab === 'hr' ? '#4f46e5' : '#6b7280'} />
+            <Text style={[styles.tabButtonText, activeTab === 'hr' && styles.tabButtonTextActive]}>HR</Text>
+        </Pressable>
+        <Pressable 
+            style={[styles.tabButton, activeTab === 'aptitude' && styles.tabButtonActive]} 
+            onPress={() => handleTabClick('aptitude')}
+        >
+            <BrainCircuit size={24} color={activeTab === 'aptitude' ? '#4f46e5' : '#6b7280'} />
+            <Text style={[styles.tabButtonText, activeTab === 'aptitude' && styles.tabButtonTextActive]}>Aptitude</Text>
+        </Pressable>
+      </View>
 
-        <nav className="bottom-tab-bar">
-            <button className={`tab-button ${activeTab === 'technical' ? 'active' : ''}`} onClick={() => handleTabClick('technical')}><Code size={24} />Technical</button>
-            <button className={`tab-button ${activeTab === 'hr' ? 'active' : ''}`} onClick={() => handleTabClick('hr')}><User size={24} />HR</button>
-            <button className={`tab-button ${activeTab === 'aptitude' ? 'active' : ''}`} onClick={() => handleTabClick('aptitude')}><BrainCircuit size={24} />Aptitude</button>
-        </nav>
-      </div>
+      {/* --- ADD QUESTION MODAL --- */}
+      <Modal
+        visible={showAddForm}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowAddForm(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            <Text style={styles.modalTitle}>Add a New Interview Question</Text>
+            <ScrollView contentContainerStyle={styles.modalScroll}>
+                <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Category</Text>
+                    <View style={styles.pickerWrapper}>
+                        <Picker
+                            selectedValue={newCategory}
+                            onValueChange={setNewCategory}
+                            style={styles.formPicker}
+                        >
+                            {categoryOptions.map((cat) => (
+                                <Picker.Item key={cat} label={cat.charAt(0).toUpperCase() + cat.slice(1)} value={cat} />
+                            ))}
+                        </Picker>
+                    </View>
+                </View>
 
-      {showAddForm && (
-        <div className="modal-overlay">
-          <div className="modal-box">
-            <div className="modal-header">
-              <h2 className="modal-title">Add a New Interview Question</h2>
-            </div>
-            <form onSubmit={handleAddQuestionSubmit}>
-               <div className="form-group">
-                <label className="form-label" htmlFor="category">Category</label>
-                <select id="category" className="form-select" value={newCategory} onChange={(e) => setNewCategory(e.target.value)}>
-                  <option value="technical">Technical</option>
-                  <option value="hr">HR</option>
-                  <option value="aptitude">Aptitude</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="difficulty">Difficulty</label>
-                <select id="difficulty" className="form-select" value={newDifficulty} onChange={(e) => setNewDifficulty(e.target.value)}>
-                  <option value="Easy">Easy</option>
-                  <option value="Medium">Medium</option>
-                  <option value="Hard">Hard</option>
-                </select>
-              </div>
-              <div className="form-group">
-                <label className="form-label" htmlFor="question">Question</label>
-                <textarea id="question" className="form-textarea" value={newQuestion} onChange={(e) => setNewQuestion(e.target.value)} required />
-              </div>
-              <div className="form-group">
-                <div className="label-container">
-                    <label className="form-label" htmlFor="answer">Answer</label>
-                    <button type="button" className="ai-button" onClick={handleGenerateAnswer} disabled={isGenerating}>
-                        {isGenerating ? <RotateCw size={16} className="animate-spin" /> : <Sparkles size={16} />}
-                        {isGenerating ? 'Generating...' : 'Generate Answer'}
-                    </button>
-                </div>
-                <textarea id="answer" className="form-textarea" value={newAnswer} onChange={(e) => setNewAnswer(e.target.value)} required />
-              </div>
-              <div className="modal-actions">
-                <button type="button" className="add-question-btn button-cancel" onClick={() => setShowAddForm(false)}>Cancel</button>
-                <button type="submit" className="add-question-btn" disabled={isGenerating}>Save Question</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </>
+                <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Difficulty</Text>
+                    <View style={styles.pickerWrapper}>
+                        <Picker
+                            selectedValue={newDifficulty}
+                            onValueChange={setNewDifficulty}
+                            style={styles.formPicker}
+                        >
+                            {difficultyOptions.map((diff) => (
+                                <Picker.Item key={diff} label={diff} value={diff} />
+                            ))}
+                        </Picker>
+                    </View>
+                </View>
+
+                <View style={styles.formGroup}>
+                    <Text style={styles.formLabel}>Question</Text>
+                    <TextInput
+                        style={[styles.formInput, styles.formTextarea]}
+                        value={newQuestion}
+                        onChangeText={setNewQuestion}
+                        multiline
+                        numberOfLines={3}
+                        required
+                    />
+                </View>
+
+                <View style={styles.formGroup}>
+                    <View style={styles.labelContainer}>
+                        <Text style={styles.formLabel}>Answer</Text>
+                        <Pressable style={styles.aiButton} onPress={handleGenerateAnswer} disabled={isGenerating}>
+                            {isGenerating ? 
+                                <ActivityIndicator color="#4f46e5" size="small" style={styles.animateSpin} /> 
+                                : <Sparkles size={16} color="#4f46e5" />
+                            }
+                            <Text style={styles.aiButtonText}>
+                                {isGenerating ? 'Generating...' : 'Generate Answer'}
+                            </Text>
+                        </Pressable>
+                    </View>
+                    <TextInput
+                        style={[styles.formInput, styles.formTextarea]}
+                        value={newAnswer}
+                        onChangeText={setNewAnswer}
+                        multiline
+                        numberOfLines={6}
+                        required
+                    />
+                </View>
+            </ScrollView>
+
+            <View style={styles.modalActions}>
+              <Pressable style={styles.buttonCancel} onPress={() => setShowAddForm(false)}>
+                <Text style={styles.buttonCancelText}>Cancel</Text>
+              </Pressable>
+              <Pressable style={styles.buttonPrimary} onPress={handleAddQuestionSubmit} disabled={isGenerating}>
+                <Text style={styles.buttonPrimaryText}>Save Question</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 }
+
+// --- StyleSheet ---
+const styles = StyleSheet.create({
+  pageContainer: {
+    flex: 1,
+    backgroundColor: '#f9fafe',
+  },
+  headerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  backButton: {
+    padding: 8,
+    backgroundColor: '#eef2ff',
+    borderRadius: 20,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#111827',
+  },
+  mainContent: {
+    padding: 24,
+    paddingBottom: 100, // Space for the bottom bar
+    maxWidth: 800,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  controlBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+    paddingVertical: 8,
+    backgroundColor: '#f9fafe',
+    zIndex: 10,
+    // Add sticky effect manually if needed, but ScrollView handles top placement
+  },
+  addQuestionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#4f46e5',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  addQuestionBtnText: {
+    color: 'white',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  sortBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginLeft: 'auto',
+  },
+  sortLabel: {
+    fontSize: 14,
+    color: '#4b5563',
+    fontWeight: '500',
+  },
+  sortControlGroup: {
+    position: 'relative',
+    justifyContent: 'center',
+    width: 160,
+    height: 40,
+    borderRadius: 8,
+    overflow: 'hidden', // to hide picker artifacts on some platforms
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    backgroundColor: '#fff',
+  },
+  sortSelect: {
+    width: '100%',
+    height: 40,
+    color: '#1f2937',
+  },
+  accordionContainer: {
+    gap: 16,
+  },
+  questionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  questionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+  },
+  questionToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  questionText: {
+    fontWeight: '600',
+    color: '#1f2937',
+    fontSize: 16,
+    flexShrink: 1,
+    paddingRight: 16,
+  },
+  questionControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  questionAnswerContainer: {
+    backgroundColor: '#f9fafb',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    padding: 20,
+    maxHeight: 300, // Limit height of answer area
+  },
+  questionAnswerText: {
+    color: '#4b5563',
+    fontSize: 15,
+    lineHeight: 24,
+  },
+  difficultyBadge: {
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 99,
+    marginRight: 16,
+  },
+  difficultyText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  'difficulty-easy': { backgroundColor: '#dcfce7', color: '#166534' },
+  'difficulty-medium': { backgroundColor: '#fef3c7', color: '#92400e' },
+  'difficulty-hard': { backgroundColor: '#fee2e2', color: '#991b1b' },
+  deleteButton: {
+    padding: 8,
+    borderRadius: 20,
+  },
+  infoContainer: {
+    alignItems: 'center',
+    padding: 32,
+  },
+  infoText: {
+    color: '#6b7280',
+    fontSize: 16,
+    marginTop: 8,
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 16,
+    marginTop: 8,
+    fontWeight: '500',
+  },
+  emptyState: {
+    padding: 48,
+    alignItems: 'center',
+  },
+  // --- Bottom Tab Bar Styles ---
+  bottomTabBar: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: '#ffffff',
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingVertical: 8,
+  },
+  tabButton: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    padding: 8,
+    borderRadius: 8,
+  },
+  tabButtonActive: {
+    // No specific background change, rely on icon/text color
+  },
+  tabButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#6b7280',
+    marginTop: 4,
+  },
+  tabButtonTextActive: {
+    color: '#4f46e5',
+  },
+  // --- Modal Styles ---
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalBox: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 24,
+    width: '90%',
+    maxWidth: 512,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  modalScroll: {
+    maxHeight: 400, // Limit scroll view height
+  },
+  formGroup: {
+    marginBottom: 16,
+  },
+  formLabel: {
+    fontWeight: '500',
+    marginBottom: 6,
+    color: '#1f2937',
+  },
+  formInput: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    backgroundColor: '#fff',
+  },
+  formTextarea: {
+    minHeight: 100,
+    textAlignVertical: 'top', // Align text to the top on Android
+  },
+  labelContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  aiButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    padding: 8,
+    backgroundColor: '#eef2ff',
+    borderRadius: 6,
+  },
+  aiButtonText: {
+    color: '#4f46e5',
+    fontWeight: '600',
+    fontSize: 14,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    gap: 12,
+    marginTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingTop: 16,
+  },
+  buttonCancel: {
+    backgroundColor: '#f3f4f6',
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  buttonCancelText: {
+    color: '#1f2937',
+    fontWeight: '600',
+  },
+  buttonPrimary: {
+    backgroundColor: '#4f46e5',
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  buttonPrimaryText: {
+    color: 'white',
+    fontWeight: '600',
+  },
+  pickerWrapper: {
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderRadius: 8,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+  },
+  formPicker: {
+    width: '100%',
+    height: 40,
+    color: '#1f2937',
+  },
+  animateSpin: {
+    // This style is often needed to correctly apply animation on some native views
+    transform: [{ rotate: '0deg' }], 
+  },
+});
