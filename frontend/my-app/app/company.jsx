@@ -26,6 +26,7 @@ import {
   PieChart as PieChartIcon,
   PackageX,
   Building,
+  ChevronDown,
 } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -569,7 +570,7 @@ export default function CompanyAnalysis() {
               }}
             >
               <Text style={styles.yearSelectorButtonText}>{selectedYear || "Select"}</Text>
-              {/* Optional: Add a dropdown icon here if you like */}
+             <ChevronDown size={18} color="#6b7280" />
             </Pressable>
           </View>
             </View>
@@ -630,7 +631,7 @@ const styles = StyleSheet.create({
       backgroundColor: '#fff',
       paddingVertical: 12, // Match input height
       paddingHorizontal: 16,
-      minWidth: 150,
+      minWidth: 130,
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
