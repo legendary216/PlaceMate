@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   Alert,
   Linking, // For opening meeting links
+  Platform,
+  StatusBar
 } from 'react-native';
 import {
   ArrowLeft,
@@ -241,7 +243,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 12 : 16, // Pushes header down on Android
+    paddingBottom: 12,
     paddingHorizontal: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 1,

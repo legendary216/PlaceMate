@@ -11,6 +11,8 @@
     TextInput,
     Alert,
     Linking, // For opening meeting links (not used here, but good practice)
+    Platform,
+    StatusBar
   } from 'react-native';
   import { LogOut, Loader2, Check, X, Users, RefreshCw, Calendar, Clock, Link2, XCircle, ArrowLeft } from 'lucide-react-native';
   import { useRouter, Link } from "expo-router";
@@ -433,7 +435,8 @@
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      paddingVertical: 16,
+     paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 12 : 16, // Pushes header down on Android
+    paddingBottom: 16,
       paddingHorizontal: 24,
       backgroundColor: '#fff',
       borderBottomWidth: 1,

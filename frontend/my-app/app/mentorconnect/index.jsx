@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   Image,
   Alert,
+  Platform, // 👈 CRITICAL: MUST BE IMPORTED
+    StatusBar,
 } from "react-native";
 import {
   ArrowLeft,
@@ -189,7 +191,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
+   paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 12 : 16, // Pushes header down on Android
+    paddingBottom: 16,
     paddingHorizontal: 24,
     backgroundColor: '#fff',
     borderBottomWidth: 1,

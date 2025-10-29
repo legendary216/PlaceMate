@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Modal,
   Alert,
+  Platform,
+  StatusBar
 } from 'react-native';
 import { ArrowLeft, Loader2, Calendar, Clock, Send, AlertTriangle } from 'lucide-react-native'; // Native icons
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -249,7 +251,8 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
+   paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 12 : 16, // Pushes header down on Android
+    paddingBottom: 16,
     paddingHorizontal: 24,
     backgroundColor: '#fff',
     borderBottomWidth: 1,

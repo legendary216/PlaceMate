@@ -10,6 +10,8 @@ import {
   Image,
   Alert,
   Linking, // To open ID proof URL
+  Platform, // 👈 CRITICAL: MUST BE IMPORTED
+    StatusBar,
 } from 'react-native';
 import { ArrowLeft, Loader2, Briefcase, Brain, Clock, Award, Calendar, Send, CheckCircle, Hourglass, DollarSign, FileText } from 'lucide-react-native'; // Native icons
 import { useRouter, useLocalSearchParams, Link } from 'expo-router';
@@ -299,7 +301,8 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 16,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 12 : 16, // Pushes header down on Android
+    paddingBottom: 16,
     paddingHorizontal: 24,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
