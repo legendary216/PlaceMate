@@ -28,7 +28,7 @@ import {
 import { Picker } from "@react-native-picker/picker";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
-
+import CustomPickerModal from './components/CustomPickerModal';
 // --- Helper constants for Step 3 ---
 const daysOfWeek = [
   "Monday",
@@ -74,7 +74,29 @@ export default function MentorRegister() {
   const [showSuccess, setShowSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  const [pickerModalVisible, setPickerModalVisible] = useState(false);
+  const [currentPickerOptions, setCurrentPickerOptions] = useState([]);
+  const [currentPickerTitle, setCurrentPickerTitle] = useState('');
+  const [currentPickerValue, setCurrentPickerValue] = useState('');
+  const [currentEditingIndex, setCurrentEditingIndex] = useState(null); // Which slot index
+  const [currentEditingField, setCurrentEditingField] = useState(''); // 'day', 'startTime', or 'endTime'
+
   const emailRegex = /\S+@\S+\.\S+/;
+
+  const openPickerModal = (index, field, currentValue) => {
+    setCurrentEditingIndex(index);
+    setCurrentEditingField(field);
+    setCurrentPickerValue(currentValue);
+
+    if (field === 'day') {
+        setCurrentPickerOptions(daysOfWeek);
+        setCurrentPickerTitle('Select Day');
+    } else { // startTime or endTime
+        setCurrentPickerOptions(timeSlots);
+        setCurrentPickerTitle(field === 'startTime' ? 'Select Start Time' : 'Select End Time');
+    }
+    setPickerModalVisible(true);
+};
 
   // --- NEW NATIVE FILE HANDLERS ---
   const handleProfilePicChange = async () => {
@@ -361,55 +383,43 @@ export default function MentorRegister() {
             <View style={styles.slotsList}>
               {availabilitySlots.map((slot, index) => (
                 <View key={index} style={styles.slotCard}>
-                  <View style={styles.slotInputs}>
-                    {/* --- NATIVE PICKER --- */}
-                    <View style={styles.pickerWrapper}>
-                      <Picker
-                        selectedValue={slot.day}
-                        onValueChange={(value) =>
-                          updateSlot(index, "day", value)
-                        }
-                        style={styles.formPicker}
-                      >
-                        {daysOfWeek.map((day) => (
-                          <Picker.Item key={day} label={day} value={day} />
-                        ))}
-                      </Picker>
-                    </View>
-                    <View style={styles.pickerWrapper}>
-                      <Picker
-                        selectedValue={slot.startTime}
-                        onValueChange={(value) =>
-                          updateSlot(index, "startTime", value)
-                        }
-                        style={styles.formPicker}
-                      >
-                        {timeSlots.map((time) => (
-                          <Picker.Item key={time} label={time} value={time} />
-                        ))}
-                      </Picker>
-                    </View>
-                    <View style={styles.pickerWrapper}>
-                      <Picker
-                        selectedValue={slot.endTime}
-                        onValueChange={(value) =>
-                          updateSlot(index, "endTime", value)
-                        }
-                        style={styles.formPicker}
-                      >
-                        {timeSlots.map((time) => (
-                          <Picker.Item key={time} label={time} value={time} />
-                        ))}
-                      </Picker>
-                    </View>
-                  </View>
-                  <Pressable
-                    onPress={() => removeSlot(index)}
-                    style={styles.deleteBtn}
-                  >
-                    <Trash2 size={18} color="#991b1b" />
-                  </Pressable>
-                </View>
+        <View style={styles.slotInputs}>
+
+            {/* --- Day Button --- */}
+            <Pressable
+                style={styles.pickerButton} // New style for the button
+                onPress={() => openPickerModal(index, 'day', slot.day)}
+            >
+                <Text style={styles.pickerButtonText}>{slot.day}</Text>
+                {/* Optional: Add ChevronDown icon */}
+            </Pressable>
+
+            {/* --- Start Time Button --- */}
+            <Pressable
+                style={styles.pickerButton}
+                onPress={() => openPickerModal(index, 'startTime', slot.startTime)}
+            >
+                <Text style={styles.pickerButtonText}>{slot.startTime}</Text>
+                {/* Optional: Add ChevronDown icon */}
+            </Pressable>
+
+            {/* --- End Time Button --- */}
+            <Pressable
+                style={styles.pickerButton}
+                onPress={() => openPickerModal(index, 'endTime', slot.endTime)}
+            >
+                <Text style={styles.pickerButtonText}>{slot.endTime}</Text>
+                {/* Optional: Add ChevronDown icon */}
+            </Pressable>
+
+        </View>
+        <Pressable
+            onPress={() => removeSlot(index)}
+            style={styles.deleteBtn}
+        >
+            <Trash2 size={18} color="#991b1b" />
+        </Pressable>
+    </View>
               ))}
               <Pressable onPress={addSlot} style={styles.addBtn}>
                 <Plus size={18} color="#4f46e5" />
@@ -559,6 +569,18 @@ export default function MentorRegister() {
                 </View>
               </View>
             </Modal>
+            <CustomPickerModal
+            isVisible={pickerModalVisible}
+            onClose={() => setPickerModalVisible(false)}
+            options={currentPickerOptions}
+            selectedValue={currentPickerValue}
+            onSelectValue={(newValue) => {
+                // Update the correct slot using the stored index and field
+                updateSlot(currentEditingIndex, currentEditingField, newValue);
+            }}
+            title={currentPickerTitle}
+            styles={styles} // Pass shared styles
+       />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -568,6 +590,133 @@ export default function MentorRegister() {
 
 // --- Converted StyleSheet ---
 const styles = StyleSheet.create({
+modalActions: { // Container for Cancel/Done buttons
+      flexDirection: 'row',
+      justifyContent: 'flex-end', // Aligns buttons to the right
+      gap: 40,                  // Space between buttons
+      marginTop: 24,             // Space above buttons
+      width: '100%',             // Ensure actions take full width
+      borderTopWidth: 1,
+      borderTopColor: '#e5e7eb', // Separator line
+      paddingTop: 16,            // Space below separator
+    },
+    buttonCancel: { // Style for Cancel button
+      backgroundColor: '#f3f4f6', // Light gray background
+      borderWidth: 1,
+      borderColor: '#d1d5db',    // Gray border
+      paddingVertical: 10,       // Vertical padding
+      paddingHorizontal: 16,     // Horizontal padding
+      borderRadius: 8,           // Rounded corners
+    },
+    buttonCancelText: { // Text inside Cancel button
+      color: '#1f2937',          // Dark text
+      fontWeight: '600',         // Medium bold
+      fontSize: 15,              // Adjust font size if needed
+    },
+    buttonConfirm: { // Style for Done/Confirm button
+      backgroundColor: '#4f46e5', // Primary blue background
+      paddingVertical: 10,       // Vertical padding
+      paddingHorizontal: 16,     // Horizontal padding
+      borderRadius: 8,           // Rounded corners
+      minHeight: 40,             // Ensure minimum height
+      justifyContent: 'center',    // Center content vertically
+      alignItems: 'center',      // Center content horizontally
+    },
+    buttonConfirmText: { // Text inside Done/Confirm button
+      color: '#fff',             // White text
+      fontWeight: '600',         // Medium bold
+      fontSize: 15,              // Adjust font size if needed
+    },
+
+    // --- Ensure you also have styles for modalHeader, modalTitle, modalCloseBtn ---
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+        marginBottom: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#e5e7eb',
+        paddingBottom: 16,
+    },
+    modalTitle: { // Used in both success modal and custom picker
+        fontSize: 20, // Keep consistent
+        fontWeight: '600',
+        color: '#1f2937',
+        textAlign: 'center', // Center if needed
+        flexShrink: 1, // Allow text to shrink if header is narrow
+    },
+    modalCloseBtn: { // Used in custom picker
+        padding: 8,
+        backgroundColor: '#f3f4f6',
+        borderRadius: 20,
+    },
+     modalOverlay: { // Base style for modal backgrounds
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+    },
+     modalBox: { // Base style inherited by picker modal, also used by success modal
+        backgroundColor: "#fff",
+        borderRadius: 12,
+        padding: 24,
+        width: "90%",
+        maxWidth: 320,
+        alignItems: "center", // Centering items might affect picker layout if not overridden
+    },
+
+  pickerModalBox: {
+      maxWidth: 250, // Make it narrower
+      maxHeight: '70%',
+      
+    },
+    pickerListScrollView: {
+      marginVertical: 10,
+    },
+    pickerListItem: {
+      paddingVertical: 14, // Slightly more padding
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: '#f3f4f6', // Lighter border
+    },
+    pickerListItemSelected: {
+      backgroundColor: '#eef2ff',
+    },
+    pickerListItemText: {
+      fontSize: 16,
+      color: '#374151',
+      textAlign: 'center',
+    },
+    pickerListItemTextSelected: {
+      color: '#4f46e5',
+      fontWeight: '600',
+    },
+    pickerButton: { // Style for the Pressable replacing Picker
+      flex: 1, // Make buttons take equal space
+      borderWidth: 1,
+      borderColor: "#d1d5db",
+      borderRadius: 8,
+      backgroundColor: "#fff",
+      paddingVertical: 10, // Adjust padding as needed
+      paddingHorizontal: 8, // Adjust padding
+      justifyContent: 'center', // Center text vertically
+      alignItems: 'center', // Center text horizontally
+      minHeight: 42, // Ensure consistent height
+    },
+    pickerButtonText: {
+        fontSize: 14, // Adjust font size
+        color: '#1f2937',
+    },
+
+  pickerWithoutWrapper: {
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    // Add explicit height ONLY if absolutely necessary for layout,
+    // but try without it first. e.g., height: 50,
+},
   safeArea: { flex: 1, backgroundColor: "#f8fafc" },
   container: {
     flex: 1,
@@ -791,11 +940,11 @@ const styles = StyleSheet.create({
     borderColor: "#d1d5db",
     borderRadius: 8,
     backgroundColor: "#fff",
-    justifyContent: 'center', // Center picker on Android
+    //justifyContent: 'center', // Center picker on Android
   },
   formPicker: {
     width: "100%",
-    height: 40, // Needs explicit height on iOS
+    //height: 40, // Needs explicit height on iOS
     backgroundColor: 'transparent',
   },
   deleteBtn: {
