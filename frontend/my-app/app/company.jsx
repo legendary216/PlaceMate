@@ -60,6 +60,9 @@ export default function CompanyAnalysis() {
   const [userRole, setUserRole] = useState(null);
   const [chartType, setChartType] = useState('bar'); 
 
+  const [showYearModal, setShowYearModal] = useState(false);
+  const [tempSelectedYear, setTempSelectedYear] = useState(selectedYear);
+
   // Modal States
   const [showAddCompanyModal, setShowAddCompanyModal] = useState(false);
   const [showEditCompanyModal, setShowEditCompanyModal] = useState(false);
@@ -490,6 +493,53 @@ export default function CompanyAnalysis() {
     </Modal>
   );
 
+  const renderYearSelectorModal = () => (
+    <Modal visible={showYearModal} transparent animationType="fade" onRequestClose={() => setShowYearModal(false)}>
+      <View style={styles.modalOverlay}>
+        <View style={[styles.modalBox, styles.yearModalBox]}> {/* Use a slightly different style */}
+          <View style={styles.modalHeader}> 
+            <Text style={styles.modalTitle}>Select Academic Year</Text> 
+            <Pressable style={styles.modalCloseBtn} onPress={() => setShowYearModal(false)}><X size={20} /></Pressable> 
+          </View>
+          
+          <ScrollView style={styles.yearListScrollView}>
+            {availableYears.map(year => (
+              <Pressable 
+                key={year} 
+                style={[
+                  styles.yearListItem, 
+                  tempSelectedYear === year && styles.yearListItemSelected // Highlight selected
+                ]} 
+                onPress={() => setTempSelectedYear(year)}
+              >
+                <Text 
+                  style={[
+                    styles.yearListItemText,
+                    tempSelectedYear === year && styles.yearListItemTextSelected
+                  ]}
+                >
+                  {year}
+                </Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+
+          <View style={styles.modalActions}> 
+            <Pressable style={styles.buttonCancel} onPress={() => setShowYearModal(false)}>
+              <Text style={styles.buttonCancelText}>Cancel</Text>
+            </Pressable> 
+            <Pressable style={styles.buttonConfirm} onPress={() => {
+              setSelectedYear(tempSelectedYear); // Apply the selection
+              setShowYearModal(false);         // Close modal
+            }}>
+              <Text style={styles.buttonConfirmText}>Done</Text>
+            </Pressable> 
+          </View>
+        </View>
+      </View>
+    </Modal>
+  );
+
   // --- MAIN RENDER ---
   return (
     <SafeAreaView style={styles.pageContainer}>
@@ -509,17 +559,19 @@ export default function CompanyAnalysis() {
             )}
 
             <View style={styles.controlsContainer}> 
-                <Text style={styles.controlsLabel}>Select Year:</Text> 
-                <View style={styles.pickerWrapper}>
-                    <Picker 
-                  selectedValue={selectedYear} 
-                  onValueChange={setSelectedYear} 
-                  style={styles.yearSelect}
-                  itemStyle={{ color: '#1f2937', fontSize: 16 }} // 👈 ADD THIS
-                >
-                        {availableYears.map(year => ( <Picker.Item key={year} label={year} value={year} /> ))} 
-                    </Picker> 
-                </View>
+               <View style={styles.controlsContainer}> 
+            <Text style={styles.controlsLabel}>Select Year:</Text> 
+            <Pressable 
+              style={styles.yearSelectorButton} 
+              onPress={() => {
+                setTempSelectedYear(selectedYear); // Reset temp year on open
+                setShowYearModal(true); 
+              }}
+            >
+              <Text style={styles.yearSelectorButtonText}>{selectedYear || "Select"}</Text>
+              {/* Optional: Add a dropdown icon here if you like */}
+            </Pressable>
+          </View>
             </View>
             
             {error && <Text style={styles.errorText}>{error}</Text>}
@@ -537,12 +589,64 @@ export default function CompanyAnalysis() {
         {renderAddCompanyModal()}
         {renderEditCompanyModal()}
         {renderAddPlacementModal()}
+        {renderYearSelectorModal()}
     </SafeAreaView>
   );
 }
 
 // --- StyleSheet ---
 const styles = StyleSheet.create({
+
+  yearModalBox: {
+      maxWidth: 300, // Make it narrower than other modals
+      maxHeight: '70%', 
+    },
+    yearListScrollView: {
+      marginVertical: 10,
+    },
+    yearListItem: {
+      paddingVertical: 12,
+      paddingHorizontal: 16,
+      borderBottomWidth: 1,
+      borderBottomColor: '#eee',
+    },
+    yearListItemSelected: {
+      backgroundColor: '#eef2ff',
+    },
+    yearListItemText: {
+      fontSize: 16,
+      color: '#374151',
+      textAlign: 'center',
+    },
+    yearListItemTextSelected: {
+      color: '#4f46e5',
+      fontWeight: '600',
+    },
+    // Style for the button that opens the modal
+    yearSelectorButton: {
+      borderWidth: 1,
+      borderColor: '#d1d5db',
+      borderRadius: 6,
+      backgroundColor: '#fff',
+      paddingVertical: 12, // Match input height
+      paddingHorizontal: 16,
+      minWidth: 150,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+    },
+    yearSelectorButtonText: {
+      fontSize: 16,
+      color: '#1f2937', 
+    },
+    yearSelectorButtonPlaceholder: { // If you want placeholder text
+       fontSize: 16,
+       color: '#9ca3af', 
+    },
+    // Make sure modalScrollView has maxHeight too
+    modalScrollView: {
+        maxHeight: 400, // Or adjust as needed
+    },
 
     horizontalScroll: {
         width: screenWidth, // Constrain the scroll view to screen width
