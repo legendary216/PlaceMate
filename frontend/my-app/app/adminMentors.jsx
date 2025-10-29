@@ -11,10 +11,13 @@ import {
   Image,
   Alert,
   Linking,
+  Platform, // 👈 ADD THIS
+  StatusBar,
 } from 'react-native';
 import { ArrowLeft, Check, X, Loader2, FileText, AlertTriangle } from 'lucide-react-native';
 import { useRouter, Link } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { WebView } from 'react-native-webview';
 
 export default function AdminMentors() {
   const [pendingMentors, setPendingMentors] = useState([]);
@@ -26,6 +29,7 @@ export default function AdminMentors() {
   // Selected Mentor is the state that crashes the app if null
   const [selectedMentor, setSelectedMentor] = useState(null); 
   const [actionLoading, setActionLoading] = useState(null);
+  const [idProofUrl, setIdProofUrl] = useState(null);
 
   useEffect(() => {
     const initialize = async () => {
@@ -283,9 +287,9 @@ export default function AdminMentors() {
                       <View style={styles.detailItemFull}>
                         <Text style={styles.detailLabel}>ID Proof</Text>
                         <Pressable 
-                            onPress={() => Linking.openURL(selectedMentor.idProof)}
-                            style={styles.idProofLink}
-                        >
+                            onPress={() => setIdProofUrl(selectedMentor.idProof)} // 👈 LIKE THIS
+                            style={styles.idProofLink}
+                        >
                           <FileText size={16} color="#4f46e5" />
                           <Text style={styles.idProofLinkText}>View Uploaded ID</Text>
                         </Pressable>
@@ -319,6 +323,32 @@ export default function AdminMentors() {
           </View>
         </View>
       </Modal>
+
+      {/* 🔽 ADD THIS NEW MODAL 🔽 */}
+      <Modal
+        visible={!!idProofUrl}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIdProofUrl(null)}
+      >
+        <View style={styles.webviewOverlay}>
+         {/* 🔽 ADD THIS WRAPPER 🔽 */}
+          <View style={styles.webviewBox}> 
+            <View style={styles.webviewHeader}>
+              <Text style={styles.webviewTitle}>ID Proof</Text>
+D             <Pressable style={styles.modalCloseBtn} onPress={() => setIdProofUrl(null)}>
+                <X size={20} color="#1f2937" />
+              </Pressable>
+            </View>
+            <WebView 
+              source={{ uri: idProofUrl }} 
+              style={styles.webview}
+            />
+          </View>
+          {/* 🔼 END OF WRAPPER 🔼 */}
+        </View>
+      </Modal>
+    {/* 🔼 END OF NEW MODAL 🔼 */}
     </SafeAreaView>
   );
 }
@@ -331,7 +361,8 @@ const styles = StyleSheet.create({
   headerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 12 : 12, // 👈 ADDED
+    paddingBottom: 12, // 👈 ADDED
     paddingHorizontal: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
@@ -462,9 +493,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 12,
     padding: 24,
-    width: '100%',
+    width: '90%',
     maxWidth: 480,
-    maxHeight: '90%',
+    maxHeight: '80%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -488,7 +519,7 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   detailItem: {
-    width: '48%',
+    width: '100%',
     backgroundColor: '#f9fafb',
     padding: 12,
     borderRadius: 8,
@@ -542,4 +573,37 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 8,
   },
+  webviewOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.8)',
+    paddingTop: 80, // Give space for status bar and header
+    paddingHorizontal: 20,
+    paddingBottom: 80,
+  },
+webviewBox: {
+    flex: 1,
+    borderRadius: 12,
+    overflow: 'hidden',
+    backgroundColor: '#fff', // Add a background color
+  },
+  webviewHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 16,
+    //borderTopLeftRadius: 12,
+    //borderTopRightRadius: 12,
+  },
+  webviewTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#1f2937',
+ },
+  webview: {
+    flex: 1,
+    width: '100%',
+   // borderBottomLeftRadius: 12,
+    //borderBottomRightRadius: 12,
+  }
 });
