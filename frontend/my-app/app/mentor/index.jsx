@@ -102,36 +102,36 @@
     };
 
     // --- Handle Connection Request Response ---
-   const handleConnectionResponse = async (requestId, newStatus) => {
+   // Inside MentorHome.js (around line 174)
+
+const handleConnectionResponse = async (requestId, newStatus) => {
     // Set loading state to ID + Type BEFORE opening the alert
     setActionLoading({ id: requestId, type: newStatus }); 
 
     const token = await AsyncStorage.getItem("token");
-    const verb = newStatus === 'accepted' ? 'accept' : 'reject'; // Fixes the UX bug from before
+    
+    // 👇 ADD THIS LINE: Determine the correct base verb (accept or reject)
+    const verb = newStatus === 'accepted' ? 'accept' : 'reject'; 
 
     Alert.alert(
         "Confirm Action",
-        `Are you sure you want to ${verb} this connection request?`, // Corrected UX text
+        // 👇 USE 'verb' IN THE TEMPLATE STRING
+        `Are you sure you want to ${verb} this connection request?`, 
         [
             // Clear loading state if user cancels the confirmation
             { text: "Cancel", style: "cancel", onPress: () => setActionLoading(null) }, 
             {
-                text: newStatus.charAt(0).toUpperCase() + newStatus.slice(1),
+                // This still shows "Accepted" or "Rejected" which is correct for the button label itself
+                text: newStatus.charAt(0).toUpperCase() + newStatus.slice(1), 
                 style: newStatus === 'rejected' ? 'destructive' : 'default',
                 onPress: async () => {
+                    // ... API submission logic ...
                     try {
-                        const res = await fetch(`https://placemate-ru7v.onrender.com/api/connections/respond/${requestId}`, {
-                            method: "PATCH",
-                            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                            body: JSON.stringify({ status: newStatus })
-                        });
-                        if (!res.ok) throw new Error("Action failed.");
-                        setRequests(prev => prev.filter(req => req._id !== requestId));
-                        Alert.alert("Success", `Connection request ${newStatus}!`);
+                        // ...
                     } catch (err) { 
-                        Alert.alert("Error", err.message); 
+                        // ...
                     } finally { 
-                        setActionLoading(null); // Clear loading state after operation finishes/fails
+                        setActionLoading(null); 
                     }
                 }
             }
@@ -680,6 +680,7 @@
       padding: 12,
       fontSize: 16,
       backgroundColor: '#fff',
+      color: '#1f2937',
     },
     modalActions: {
       flexDirection: 'row',
