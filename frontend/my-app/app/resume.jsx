@@ -314,22 +314,22 @@ export default function ResumeAnalyzer() { // REMOVED duplicate export
                         )}
 
                         
-                         {/* <View style={styles.statusMessage}>
+                         <View style={styles.statusMessage}>
                             
-                             {isLoading && (
+                             {/* {isLoading && (
                                  <View style={styles.loadingIndicator}>
                                      
                                      <ActivityIndicator size="small" color="#4f46e5" />
                                      <Text style={styles.loadingText}>Analyzing, please wait...</Text>
                                  </View>
-                             )}
+                             )} */}
                              {error && !isLoading && (
                                  <View style={styles.errorContainer}> 
                                      <AlertTriangle size={18} color="#ef4444" />
                                      <Text style={styles.errorText}>{error}</Text>
                                  </View>
                              )}
-                         </View> */}
+                         </View>
                     </View>
                 )}
                 {/* --- End Conditional Upload Section --- */}
