@@ -102,35 +102,42 @@
     };
 
     // --- Handle Connection Request Response ---
-    const handleConnectionResponse = async (requestId, newStatus) => {
-      setActionLoading(requestId);
-      const token = await AsyncStorage.getItem("token");
-      
-      Alert.alert(
-          "Confirm Action",
-          `Are you sure you want to ${newStatus} this connection request?`,
-          [
-              { text: "Cancel", style: "cancel", onPress: () => setActionLoading(null) },
-              {
-                  text: newStatus.charAt(0).toUpperCase() + newStatus.slice(1),
-                  style: newStatus === 'rejected' ? 'destructive' : 'default',
-                  onPress: async () => {
-                      try {
-                          const res = await fetch(`https://placemate-ru7v.onrender.com/api/connections/respond/${requestId}`, {
-                              method: "PATCH",
-                              headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                              body: JSON.stringify({ status: newStatus })
-                          });
-                          if (!res.ok) throw new Error("Action failed.");
-                          setRequests(prev => prev.filter(req => req._id !== requestId));
-                          Alert.alert("Success", `Connection request ${newStatus}!`);
-                      } catch (err) { Alert.alert("Error", err.message); } finally { setActionLoading(null); }
-                  }
-              }
-          ]
-      );
-    };
+   const handleConnectionResponse = async (requestId, newStatus) => {
+    // Set loading state to ID + Type BEFORE opening the alert
+    setActionLoading({ id: requestId, type: newStatus }); 
 
+    const token = await AsyncStorage.getItem("token");
+    const verb = newStatus === 'accepted' ? 'accept' : 'reject'; // Fixes the UX bug from before
+
+    Alert.alert(
+        "Confirm Action",
+        `Are you sure you want to ${verb} this connection request?`, // Corrected UX text
+        [
+            // Clear loading state if user cancels the confirmation
+            { text: "Cancel", style: "cancel", onPress: () => setActionLoading(null) }, 
+            {
+                text: newStatus.charAt(0).toUpperCase() + newStatus.slice(1),
+                style: newStatus === 'rejected' ? 'destructive' : 'default',
+                onPress: async () => {
+                    try {
+                        const res = await fetch(`https://placemate-ru7v.onrender.com/api/connections/respond/${requestId}`, {
+                            method: "PATCH",
+                            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                            body: JSON.stringify({ status: newStatus })
+                        });
+                        if (!res.ok) throw new Error("Action failed.");
+                        setRequests(prev => prev.filter(req => req._id !== requestId));
+                        Alert.alert("Success", `Connection request ${newStatus}!`);
+                    } catch (err) { 
+                        Alert.alert("Error", err.message); 
+                    } finally { 
+                        setActionLoading(null); // Clear loading state after operation finishes/fails
+                    }
+                }
+            }
+        ]
+    );
+};
     // --- Open Accept Modal ---
     const handleAcceptBooking = (booking) => {
       setCurrentBookingToAccept({
@@ -245,7 +252,7 @@
       if (isLoadingRequests) { return <View style={styles.infoContainer}><ActivityIndicator size="small" color="#4f46e5" /><Text style={styles.infoText}>Loading requests...</Text></View>; }
       if (fetchRequestsError) { return <Text style={styles.errorText}>{fetchRequestsError}</Text>; }
       if (requests.length === 0) { return (<View style={[styles.infoContainer, styles.emptyState]}><Users size={40} color="#6b7280" /><Text style={styles.emptyTitle}>All Caught Up!</Text><Text style={styles.emptySubtitle}>You have no new connection requests.</Text></View>); }
-      
+      const isItemLoading = (id, type) => actionLoading && actionLoading.id === id && actionLoading.type === type;
       return (<View style={styles.itemList}>{requests.map(req => (
           <View key={req._id} style={[styles.listItem, styles.requestItem]}>
               <View style={styles.itemInfo}>
@@ -253,12 +260,26 @@
                   <Text style={styles.itemEmail}>{req.student.email}</Text>
               </View>
               <View style={styles.itemActions}>
-                  <Pressable style={styles.buttonReject} onPress={() => handleConnectionResponse(req._id, 'rejected')} disabled={actionLoading === req._id}>
-                      {actionLoading === req._id ? <ActivityIndicator size="small" color="#991b1b" /> : <X size={18} color="#991b1b" />}
-                  </Pressable>
-                  <Pressable style={styles.buttonApprove} onPress={() => handleConnectionResponse(req._id, 'accepted')} disabled={actionLoading === req._id}>
-                      {actionLoading === req._id ? <ActivityIndicator size="small" color="#166534" /> : <Check size={18} color="#166534" />}
-                  </Pressable>
+                <Pressable 
+    style={styles.buttonReject} 
+    onPress={() => handleConnectionResponse(req._id, 'rejected')} 
+    disabled={isItemLoading(req._id, 'rejected')} // 👈 UPDATED CHECK
+>
+    {isItemLoading(req._id, 'rejected') // 👈 UPDATED CHECK
+        ? <ActivityIndicator size="small" color="#991b1b" /> 
+        : <X size={18} color="#991b1b" />}
+</Pressable>
+
+// Approve Button Check:
+<Pressable 
+    style={styles.buttonApprove} 
+    onPress={() => handleConnectionResponse(req._id, 'accepted')} 
+    disabled={isItemLoading(req._id, 'accepted')} // 👈 UPDATED CHECK
+>
+    {isItemLoading(req._id, 'accepted') // 👈 UPDATED CHECK
+        ? <ActivityIndicator size="small" color="#166534" /> 
+        : <Check size={18} color="#166534" />}
+</Pressable>
               </View>
           </View>
       ))}</View>);
