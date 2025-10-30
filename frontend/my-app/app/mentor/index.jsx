@@ -676,6 +676,7 @@
         padding: 12,
         fontSize: 16,
         backgroundColor: '#fff',
+        color: '#111827',
       },
       modalActions: {
         flexDirection: 'row',
