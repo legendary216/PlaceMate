@@ -1,6 +1,6 @@
     import React, { useState, useEffect } from "react";
     import {
-      SafeAreaView,
+      
       ScrollView,
       View,
       Text,
@@ -18,6 +18,7 @@
     import { useRouter, Link } from "expo-router";
     import dayjs from 'dayjs';
     import AsyncStorage from "@react-native-async-storage/async-storage";
+    import { SafeAreaView } from 'react-native-safe-area-context';
 
     export default function MentorHome() {
       // State for Connection Requests
