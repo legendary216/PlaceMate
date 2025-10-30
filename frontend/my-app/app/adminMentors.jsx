@@ -91,7 +91,8 @@ export default function AdminMentors() {
           text: action.charAt(0).toUpperCase() + action.slice(1),
           style: action === 'reject' ? 'destructive' : 'default',
           onPress: async () => {
-            setActionLoading(mentorId);
+            const actionId = `${mentorId}-${action}`;
+            setActionLoading(actionId);
             const token = await AsyncStorage.getItem('token');
             const url = `https://placemate-ru7v.onrender.com/api/admin/mentors/${action}/${mentorId}`;
             
@@ -155,26 +156,28 @@ export default function AdminMentors() {
               >
                 <Text style={styles.buttonViewText}>Details</Text>
               </Pressable>
-              <Pressable 
-                style={styles.buttonReject}
-                onPress={() => handleAction(mentor._id, 'reject')}
-                disabled={actionLoading === mentor._id}
-              >
-                {actionLoading === mentor._id ? 
-                  <ActivityIndicator size="small" color="#991b1b" /> 
-                  : <X size={18} color="#991b1b" />
-                }
-              </Pressable>
-              <Pressable 
-                style={styles.buttonApprove}
-                onPress={() => handleAction(mentor._id, 'approve')}
-                disabled={actionLoading === mentor._id}
-              >
-                {actionLoading === mentor._id ? 
-                  <ActivityIndicator size="small" color="#166534" /> 
-                  : <Check size={18} color="#166534" />
-                }
-              </Pressable>
+             <Pressable 
+                style={styles.buttonReject}
+                onPress={() => handleAction(mentor._id, 'reject')}
+                // --- ⬇️ FIX ⬇️ ---
+                disabled={actionLoading === `${mentor._id}-reject`}
+              >
+                {actionLoading === `${mentor._id}-reject` ? 
+                  <ActivityIndicator size="small" color="#991b1b" /> 
+                  : <X size={18} color="#991b1b" />
+                }
+              </Pressable>
+              <Pressable 
+                style={styles.buttonApprove}
+                onPress={() => handleAction(mentor._id, 'approve')}
+                // --- ⬇️ FIX ⬇️ ---
+                disabled={actionLoading === `${mentor._id}-approve`}
+             >
+                {actionLoading === `${mentor._id}-approve` ? 
+                  <ActivityIndicator size="small" color="#166534" /> 
+                  : <Check size={18} color="#166534" />
+               }
+              </Pressable>
             </View>
           </View>
         ))}
@@ -299,28 +302,30 @@ export default function AdminMentors() {
                 )}
             </ScrollView>
             
-            <View style={styles.modalActions}>
-              <Pressable 
-                style={[styles.buttonReject, styles.modalActionButton]}
-                onPress={() => handleAction(selectedMentor?._id, 'reject')}
-                disabled={actionLoading === selectedMentor?._id}
-              >
-                {actionLoading === selectedMentor?._id ? 
-                  <ActivityIndicator size="small" color="#991b1b" /> 
-                  : <><X size={18} color="#991b1b" /> <Text style={styles.buttonRejectText}>Reject</Text></>
-                }
-              </Pressable>
-              <Pressable 
-                style={[styles.buttonApprove, styles.modalActionButton]}
-                onPress={() => handleAction(selectedMentor?._id, 'approve')}
-                disabled={actionLoading === selectedMentor?._id}
-              >
-                {actionLoading === selectedMentor?._id ? 
-                  <ActivityIndicator size="small" color="#166534" /> 
-                  : <><Check size={18} color="#166534" /> <Text style={styles.buttonApproveText}>Approve</Text></>
-                }
-              </Pressable>
-            </View>
+          <View style={styles.modalActions}>
+              <Pressable 
+                style={[styles.buttonReject, styles.modalActionButton]}
+                onPress={() => handleAction(selectedMentor?._id, 'reject')}
+                // --- ⬇️ FIX ⬇️ ---
+               disabled={actionLoading === `${selectedMentor?._id}-reject`}
+              >
+                {actionLoading === `${selectedMentor?._id}-reject` ? 
+                  <ActivityIndicator size="small" color="#991b1b" /> 
+                  : <><X size={18} color="#991b1b" /> <Text style={styles.buttonRejectText}>Reject</Text></>
+               }
+              </Pressable>
+              <Pressable 
+                style={[styles.buttonApprove, styles.modalActionButton]}
+                onPress={() => handleAction(selectedMentor?._id, 'approve')}
+                // --- ⬇️ FIX ⬇️ ---
+                disabled={actionLoading === `${selectedMentor?._id}-approve`}
+             >
+                {actionLoading === `${selectedMentor?._id}-approve` ? 
+                  <ActivityIndicator size="small" color="#166534" /> 
+                  : <><Check size={18} color="#166534" /> <Text style={styles.buttonApproveText}>Approve</Text></>
+             }
+              </Pressable>
+            </View>
           </View>
         </View>
       </Modal>
