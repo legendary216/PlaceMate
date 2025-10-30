@@ -43,6 +43,7 @@
 
       const [user, setUser] = useState(null);
       const [actionLoading, setActionLoading] = useState(null); // For connection requests accept/reject
+      const [isLoggingOut, setIsLoggingOut] = useState(false);
       const router = useRouter();
 
       // Fetch all initial data
@@ -204,14 +205,22 @@
         );
       };
 
-      const handleLogout = async () => {
-        // Note: Logout logic should ideally be inside app/home.jsx or a service, 
-        // but replicating functionality here for completeness.
-        await AsyncStorage.removeItem("token");
-        await AsyncStorage.removeItem("user");
-        router.replace("/");
-      };
-
+     const handleLogout = async () => {
+        setIsLoggingOut(true); // 👈 ADD THIS
+        
+        // Note: Logout logic should ideally be inside app/home.jsx or a service, 
+        // but replicating functionality here for completeness.
+        try {
+          await AsyncStorage.removeItem("token");
+          await AsyncStorage.removeItem("user");
+          router.replace("/");
+        } catch (err) {
+          console.error("Logout failed", err);
+          // Even if it fails, stop loading
+          setIsLoggingOut(false);
+        }
+        // No finally block needed, as router.replace() will unmount
+      };
 
       const handleCancelByMentor = async (bookingId) => {
         Alert.alert(
@@ -361,9 +370,18 @@
               <Pressable onPress={fetchAllData} style={styles.iconButton} title="Refresh Data">
                   <RefreshCw size={20} color="#4f46e5" />
               </Pressable>
-              <Pressable onPress={handleLogout} style={styles.iconButton} title="Logout">
-                  <LogOut size={20} color="#4f46e5" />
-              </Pressable>
+              <Pressable 
+              onPress={handleLogout} 
+              style={styles.iconButton} 
+              title="Logout"
+              disabled={isLoggingOut} // 👈 ADD THIS
+       >
+              {isLoggingOut ? (
+                <ActivityIndicator size="small" color="#4f46e5" /> // 👈 ADD THIS
+              ) : (
+                <LogOut size={20} color="#4f46e5" /> // 👈 EXISTING
+              )}
+            </Pressable>
             </View>
           </View>
 
