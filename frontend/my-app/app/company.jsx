@@ -337,25 +337,39 @@ export default function CompanyAnalysis() {
         </View>
         
         {/* Render legend only for Pie chart for clarity, bar chart has labels */}
-        {chartType === 'pie' && placementStats.length > 0 && (
-         <View style={styles.chartLegend}>
-            {/* Map over pieData which has colors and potentially truncated names */}
-            {pieData.map((entry) => {
-               // Find the original stat to get the full company name if needed
-               const originalStat = placementStats.find(s => s.count === entry.count && s.companyName.startsWith(entry.name.substring(0,5))); // Match based on count and start of name
-               const fullName = originalStat ? originalStat.companyName : entry.name; // Fallback to potentially truncated name
+        {placementStats.length > 0 && (
+          <View style={styles.chartLegend}>
 
-               return (
-                  <View key={entry.name} style={styles.legendItem}>
-                    {/* Use color directly from pieData entry */}
-                    <View style={[styles.legendColorBox, { backgroundColor: entry.color }]} /> 
-                    {/* Display full name and count */}
-                    <Text style={styles.legendText}>{fullName} ({entry.count})</Text> 
-                  </View>
-               );
-            })}
-          </View>
-        )}
+            {chartType === 'pie' ? (
+              // --- PIE CHART LEGEND (Uses pieData with many colors) ---
+              pieData.map((entry) => {
+                // Find the original stat to get the full company name
+                const originalStat = placementStats.find(s => s.count === entry.count && s.companyName.startsWith(entry.name.substring(0,5)));
+                const fullName = originalStat ? originalStat.companyName : entry.name; 
+
+               return (
+                  <View key={entry.name} style={styles.legendItem}>
+                    <View style={[styles.legendColorBox, { backgroundColor: entry.color }]} /> 
+                    <Text style={styles.legendText}>{fullName} ({entry.count})</Text> 
+                  </View>
+                );
+              })
+            
+            ) : (
+           // --- BAR CHART LEGEND (Maps placementStats with ONE color) ---
+              placementStats.map((stat) => {
+                return (
+                  <View key={stat.companyName} style={styles.legendItem}>
+                   {/* Use the single bar chart color for ALL items */}
+                    <View style={[styles.legendColorBox, { backgroundColor: '#4f46e5' }]} /> 
+                    <Text style={styles.legendText}>{stat.companyName} ({stat.count})</Text> 
+                  </View>
+                );
+              })
+            )}
+
+          </View>
+        )}
       </View>
     );
   };
