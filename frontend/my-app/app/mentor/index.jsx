@@ -111,11 +111,11 @@
         
         Alert.alert(
             "Confirm Action",
-            `Are you sure you want to ${newStatus} this connection request?`,
+            `Are you sure you want to ${newStatus === 'accepted' ? 'accept' : 'reject'} this connection request?`,
             [
                 { text: "Cancel", style: "cancel", onPress: () => setActionLoading(null) },
                 {
-                    text: newStatus.charAt(0).toUpperCase() + newStatus.slice(1),
+                    text: newStatus === 'accepted' ? 'Accept' : 'Reject',
                     style: newStatus === 'rejected' ? 'destructive' : 'default',
                     onPress: async () => {
                         try {
