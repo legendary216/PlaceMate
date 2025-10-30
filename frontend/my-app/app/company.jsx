@@ -223,14 +223,23 @@ export default function CompanyAnalysis() {
         // placementData already includes packageLPA potentially as undefined
         body: JSON.stringify(placementData) 
       });
-       if (!res.ok) {
-         try {
-             const data = await res.json(); 
-             throw new Error(data.message || 'Failed to add placement record.'); 
-         } catch (parseError) {
-              throw new Error(`Request failed with status ${res.status}`);
-         }
-      }
+      if (!res.ok) {
+        // If the error is 404 (Not Found)
+        if (res.status === 404) {
+          // Throw your custom, user-friendly error message
+          throw new Error("Either student email or company name is incorrect. Please check again.");
+        }
+
+        // For any other error (like 500), try to get the server message
+        let errorMessage;
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.message || 'Failed to add placement record.';
+        } catch (jsonError) {
+          errorMessage = `Request failed with status ${res.status}`;
+        }
+        throw new Error(errorMessage);
+      }
       
       Alert.alert('Success', `Placement record added successfully!`);
       setShowAddPlacementModal(false); // Close modal on success
