@@ -244,8 +244,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 12 : 16, // Pushes header down on Android
-    paddingBottom: 12,
+    paddingVertical: 12,
     paddingHorizontal: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 1,

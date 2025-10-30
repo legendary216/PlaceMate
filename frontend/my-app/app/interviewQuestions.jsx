@@ -524,8 +524,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     // paddingVertical: 12, // 👈 REMOVE THIS
-    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 12 : 12, // 👈 ADD THIS
-    paddingBottom: 12, // 👈 ADD THIS
+    
+    paddingVertical: 12, // 👈 ADD THIS
     paddingHorizontal: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 1,

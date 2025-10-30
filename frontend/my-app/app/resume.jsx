@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react'; // Added useEffect
 import {
-    SafeAreaView,
+    
     ScrollView,
     View,
     Text,
@@ -12,6 +12,7 @@ import {
     Platform, // Keep Platform if needed for other reasons, but web-specific logic removed
     StatusBar
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import {
     ArrowLeft,
     Loader2,
@@ -347,7 +348,7 @@ export default function ResumeAnalyzer() { // REMOVED duplicate export
 const styles = StyleSheet.create({
     // --- Base & Layout Styles ---
     pageContainer: { flex: 1, backgroundColor: '#f9fafe' },
-    headerContainer: { flexDirection: 'row', alignItems: 'center', paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight + 12 : 12, paddingBottom: 12, paddingHorizontal: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
+    headerContainer: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 16, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#e5e7eb' },
     headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 16 },
     backButton: { padding: 8, backgroundColor: '#eef2ff', borderRadius: 20, justifyContent: 'center', alignItems: 'center' },
     headerTitle: { fontSize: 24, fontWeight: '700', color: '#1f2937' }, // Adjusted size slightly
