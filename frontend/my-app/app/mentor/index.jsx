@@ -447,6 +447,7 @@
       pageContainer: {
         flex: 1,
         backgroundColor: '#f9fafe',
+       
       },
       headerContainer: {
         flexDirection: 'row',

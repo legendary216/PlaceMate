@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  SafeAreaView,
   ScrollView,
   View,
   Text,
@@ -13,6 +12,7 @@ import {
   Platform, // 👈 CRITICAL: MUST BE IMPORTED
     StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Loader2, Briefcase, Brain, Clock, Award, Calendar, Send, CheckCircle, Hourglass, DollarSign, FileText } from 'lucide-react-native'; // Native icons
 import { useRouter, useLocalSearchParams, Link } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';

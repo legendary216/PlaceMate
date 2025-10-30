@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import {
-  SafeAreaView,
+ 
   View,
   Text,
   TextInput,
@@ -15,6 +15,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter, Link } from "expo-router";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 // This is the new, correct React Native component for your login screen.

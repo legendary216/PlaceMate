@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  SafeAreaView,
+  
   ScrollView,
   View,
   Text,
@@ -14,6 +14,7 @@ import {
   Platform, // 👈 ADD THIS
   StatusBar,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Check, X, Loader2, FileText, AlertTriangle } from 'lucide-react-native';
 import { useRouter, Link } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";

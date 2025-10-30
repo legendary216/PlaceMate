@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-  SafeAreaView,
+  
   ScrollView,
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   Platform,
   StatusBar
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Loader2, Calendar, Clock, Send, AlertTriangle } from 'lucide-react-native'; // Native icons
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import dayjs from 'dayjs';

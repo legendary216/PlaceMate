@@ -1,5 +1,6 @@
 import React from "react";
-import { SafeAreaView, View, Text, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import {  View, Text, Pressable, StyleSheet, ActivityIndicator } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Loader2 } from 'lucide-react-native'; // Import from react-native
 import { useRouter } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";

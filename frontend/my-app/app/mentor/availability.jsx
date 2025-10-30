@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-    SafeAreaView,
+    
     ScrollView,
     View,
     Text,
@@ -12,6 +12,7 @@ import {
     StatusBar,
     Modal, // IMPORTANT: Must be imported for the CustomPickerModal
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, X, Plus, Trash2, Clock, ChevronDown } from 'lucide-react-native';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
